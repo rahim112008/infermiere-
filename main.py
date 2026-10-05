@@ -1,15 +1,17 @@
 """
 =====================================================================
 NEXUS CARE - Plateforme pour Infirmiers et Sages-Femmes
-Application complète en un seul fichier
-Version : 1.0 — Monnaie : Dinar Algérien (DZD)
+Version : 2.0 — Support PostgreSQL (Neon/Supabase) + SQLite fallback
+Monnaie : Dinar Algérien (DZD)
 =====================================================================
-Lancement :
+Lancement local :
     pip install -r requirements.txt
     python app.py
-Accès :
-    http://localhost:5000
-    Admin : admin@nexuscare.dz / admin123
+
+Déploiement Streamlit Cloud / Render / Railway :
+    1. Créer une base PostgreSQL (Neon, Supabase, etc.)
+    2. Ajouter la variable d'environnement DATABASE_URL
+    3. Déployer
 =====================================================================
 """
 
@@ -27,17 +29,62 @@ from wtforms import (StringField, PasswordField, SubmitField, TextAreaField,
 from wtforms.validators import DataRequired, Email, EqualTo, Length, Optional
 from werkzeug.security import generate_password_hash, check_password_hash
 
+# Chargement du .env en local (ignoré si absent)
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
+
 
 # =====================================================================
-# CONFIGURATION
+# CONFIGURATION BASE DE DONNÉES (PostgreSQL prioritaire, SQLite fallback)
 # =====================================================================
+
+def get_database_uri():
+    """
+    Priorité :
+    1. Variable d'environnement DATABASE_URL (Streamlit Secrets, Render, Railway...)
+    2. Fichier .env local (DATABASE_URL)
+    3. Fallback SQLite avec chemin ABSOLU (mode développement)
+    """
+    # 1. Essayer les secrets Streamlit (si déployé sur Streamlit Cloud)
+    try:
+        import streamlit as st
+        if hasattr(st, 'secrets') and 'DATABASE_URL' in st.secrets:
+            db_url = st.secrets['DATABASE_URL']
+            print("✅ Base détectée via Streamlit Secrets")
+        else:
+            db_url = os.environ.get('DATABASE_URL')
+    except ImportError:
+        db_url = os.environ.get('DATABASE_URL')
+
+    # 2. Si DATABASE_URL trouvée, la normaliser
+    if db_url:
+        # SQLAlchemy 1.4+ exige le préfixe "postgresql://" et non "postgres://"
+        if db_url.startswith('postgres://'):
+            db_url = db_url.replace('postgres://', 'postgresql://', 1)
+        print(f"✅ Connexion PostgreSQL/SQLAlchemy externe détectée")
+        return db_url
+
+    # 3. Sinon, fallback SQLite avec chemin absolu (évite l'erreur OperationalError)
+    BASE_DIR = os.path.abspath(os.path.dirname(__file__))
+    db_path = os.path.join(BASE_DIR, 'nexus_care.db')
+    print(f"⚠️  Aucune DATABASE_URL trouvée. Utilisation de SQLite : {db_path}")
+    print(f"    (Les données ne persisteront PAS sur Streamlit Cloud / Render)")
+    return f'sqlite:///{db_path}'
+
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'nexus-care-secret-key-2024-change-in-production'
-app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{os.path.join(BASE_DIR, "nexus_care.db")}'
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'nexus-care-secret-key-change-in-prod')
+app.config['SQLALCHEMY_DATABASE_URI'] = get_database_uri()
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+    'pool_pre_ping': True,   # Vérifie la connexion avant chaque requête
+    'pool_recycle': 280,      # Recycle les connexions après 280s (limite Neon)
+}
 app.config['WTF_CSRF_ENABLED'] = True
 app.config['CURRENCY'] = 'DZD'
 
@@ -404,6 +451,9 @@ main.with-sidebar { margin-left: 240px; }
          font-style: italic; }
 .empty a { color: var(--primary); }
 .errors { color: var(--danger); font-size: 0.8rem; margin-top: 0.25rem; }
+.db-banner { background: #fef3c7; color: #92400e; padding: 0.5rem 1rem;
+             border-radius: var(--radius); margin-bottom: 1rem;
+             font-size: 0.85rem; text-align: center; }
 @media (max-width: 768px) {
     .sidebar { transform: translateX(-100%); transition: transform 0.3s; }
     .sidebar.open { transform: translateX(0); }
@@ -939,7 +989,6 @@ NEW_MISSION_TPL = BASE.replace("{% block content %}{% endblock %}", """
 # =====================================================================
 
 def render(template, show_sidebar=True, **ctx):
-    """Rend un template avec le CSS et show_sidebar automatiquement."""
     return render_template_string(template, css=CSS,
                                   show_sidebar=show_sidebar, **ctx)
 
@@ -1225,25 +1274,48 @@ def api_stats():
     })
 
 
+@app.route('/health')
+def health():
+    """Endpoint de santé pour vérifier la connexion BDD."""
+    try:
+        db.session.execute(db.text('SELECT 1'))
+        return jsonify({'status': 'ok', 'db': 'connected'}), 200
+    except Exception as e:
+        return jsonify({'status': 'error', 'db': str(e)}), 500
+
+
 # =====================================================================
-# INITIALISATION
+# INITIALISATION BASE DE DONNÉES
 # =====================================================================
 
 def init_db():
+    """Crée les tables et l'admin par défaut."""
     with app.app_context():
-        db.create_all()
-        if not User.query.filter_by(email='admin@nexuscare.dz').first():
-            admin = User(
-                email='admin@nexuscare.dz',
-                first_name='Admin',
-                last_name='Nexus',
-                role='admin',
-                verified=True
-            )
-            admin.set_password('admin123')
-            db.session.add(admin)
-            db.session.commit()
-            print('Admin cree : admin@nexuscare.dz / admin123')
+        try:
+            db.create_all()
+            print("✅ Tables créées / vérifiées")
+        except Exception as e:
+            print(f"❌ Erreur création tables : {e}")
+            raise
+
+        try:
+            if not User.query.filter_by(email='admin@nexuscare.dz').first():
+                admin = User(
+                    email='admin@nexuscare.dz',
+                    first_name='Admin',
+                    last_name='Nexus',
+                    role='admin',
+                    verified=True
+                )
+                admin.set_password('admin123')
+                db.session.add(admin)
+                db.session.commit()
+                print('✅ Admin créé : admin@nexuscare.dz / admin123')
+            else:
+                print('ℹ️  Admin déjà existant')
+        except Exception as e:
+            db.session.rollback()
+            print(f"⚠️  Erreur création admin : {e}")
 
 
 # =====================================================================
@@ -1253,10 +1325,10 @@ def init_db():
 if __name__ == '__main__':
     init_db()
     print("=" * 60)
-    print("NEXUS CARE - Plateforme Sante")
+    print("NEXUS CARE v2.0")
     print("=" * 60)
-    print("Acces   : http://localhost:5000")
+    print("Accès   : http://localhost:5000")
     print("Admin   : admin@nexuscare.dz / admin123")
-    print("BDD     : nexus_care.db (SQLite)")
+    print("Health  : http://localhost:5000/health")
     print("=" * 60)
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    app.run(debug=True, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
