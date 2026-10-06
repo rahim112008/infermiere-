@@ -1,0 +1,1707 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Nexus Care</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f1f5f9;color:#0f172a}
+.hidden{display:none!important}
+.auth{min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#0f172a,#1e40af);padding:1rem}
+.box{background:white;padding:2rem;border-radius:14px;width:100%;max-width:400px;box-shadow:0 20px 40px rgba(0,0,0,.2)}
+.box h1{color:#0f52ba;text-align:center;margin-bottom:.5rem}
+.box p{text-align:center;color:#64748b;margin-bottom:1.5rem;font-size:.9rem}
+label{display:block;margin-bottom:.3rem;font-weight:500;font-size:.85rem;color:#475569}
+input,select,textarea{width:100%;padding:.7rem;border:1.5px solid #e2e8f0;border-radius:8px;font-size:.9rem;font-family:inherit;background:white}
+input:focus,select:focus,textarea:focus{outline:none;border-color:#0f52ba}
+.btn{padding:.7rem 1.2rem;border:1.5px solid #e2e8f0;background:white;border-radius:8px;font-weight:600;cursor:pointer;font-family:inherit;font-size:.9rem}
+.btn-p{background:#0f52ba;color:white;border-color:#0f52ba}
+.btn-p:hover{background:#0a3d8a}
+.btn-d{background:#dc2626;color:white;border-color:#dc2626}
+.btn-s{background:#00a86b;color:white;border-color:#00a86b}
+.btn-w{background:#f59e0b;color:white;border-color:#f59e0b}
+.btn-block{width:100%}
+.btn-sm{padding:.4rem .7rem;font-size:.8rem}
+.side{position:fixed;left:0;top:0;bottom:0;width:230px;background:#0f172a;padding:1rem;color:white;z-index:10;overflow-y:auto}
+.side h2{padding:1rem .5rem;border-bottom:1px solid rgba(255,255,255,.1);margin-bottom:1rem;font-size:1.1rem}
+.side a{display:flex;gap:.7rem;align-items:center;padding:.65rem 1rem;color:rgba(255,255,255,.7);text-decoration:none;border-radius:8px;font-size:.9rem;cursor:pointer;margin-bottom:.2rem}
+.side a:hover{background:rgba(255,255,255,.05);color:white}
+.side a.on{background:#0f52ba;color:white}
+.side .foot{margin-top:2rem;padding-top:1rem;border-top:1px solid rgba(255,255,255,.1);font-size:.8rem}
+main{margin-left:230px;padding:2rem;max-width:1400px}
+h1{font-size:1.6rem;margin-bottom:1.5rem}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1rem;margin-bottom:1.5rem}
+.stat{background:white;padding:1.2rem;border-radius:12px;border-top:3px solid #0f52ba;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+.stat.g{border-top-color:#00a86b}.stat.o{border-top-color:#f59e0b}.stat.p{border-top-color:#7c3aed}
+.stat .v{font-size:1.7rem;font-weight:700}
+.stat .l{font-size:.75rem;color:#94a3b8;text-transform:uppercase;margin-top:.2rem}
+.card{background:white;padding:1.5rem;border-radius:12px;margin-bottom:1.5rem;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+.card h3{margin-bottom:1rem;padding-bottom:.7rem;border-bottom:1px solid #e2e8f0;font-size:1rem}
+table{width:100%;border-collapse:collapse;font-size:.9rem}
+th,td{padding:.7rem .8rem;text-align:left;border-bottom:1px solid #e2e8f0}
+th{background:#f8fafc;font-size:.75rem;text-transform:uppercase;color:#64748b}
+.tag{padding:.2rem .6rem;border-radius:20px;font-size:.7rem;font-weight:600;display:inline-block;margin:.1rem}
+.tag-b{background:#dbeafe;color:#1e40af}.tag-g{background:#d1fae5;color:#065f46}
+.tag-y{background:#fef3c7;color:#92400e}.tag-r{background:#fee2e2;color:#991b1b}
+.tag-p{background:#ede9fe;color:#6d28d9}.tag-c{background:#cffafe;color:#0891b2}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem}
+.mb{margin-bottom:1rem}
+.list{list-style:none}
+.list li{display:flex;align-items:center;gap:1rem;padding:.7rem 0;border-bottom:1px solid #f1f5f9}
+.list li:last-child{border:none}
+.empty{text-align:center;padding:2rem;color:#94a3b8;font-style:italic}
+#toast{position:fixed;top:1rem;right:1rem;z-index:9999;display:flex;flex-direction:column;gap:.5rem;max-width:380px}
+.t{padding:.8rem 1rem;background:white;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,.15);border-left:4px solid #0f52ba;font-size:.9rem;animation:s .3s}
+.t.g{border-left-color:#00a86b}.t.r{border-left-color:#dc2626}.t.y{border-left-color:#f59e0b}
+@keyframes s{from{transform:translateX(400px);opacity:0}to{transform:translateX(0);opacity:1}}
+.mob{display:none;position:fixed;top:1rem;left:1rem;z-index:20;background:#0f52ba;color:white;border:none;width:44px;height:44px;border-radius:8px;font-size:1.2rem;cursor:pointer}
+#map{height:500px;border-radius:12px;overflow:hidden;margin-bottom:1rem}
+#map-style-picker{display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:.8rem}
+.pat-marker{background:#0f52ba;color:white;border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.8rem;border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,.3)}
+.bar{height:24px;background:linear-gradient(90deg,#0f52ba,#00a86b);border-radius:4px;margin-bottom:.5rem;position:relative;min-width:2px;transition:width .5s}
+.bar-wrap{margin-bottom:1rem}
+.bar-label{display:flex;justify-content:space-between;font-size:.85rem;margin-bottom:.3rem}
+.stat-box{padding:1rem;border-radius:8px;text-align:center;background:#f8fafc}
+.stat-box .v{font-size:1.4rem;font-weight:700;color:#0f52ba}
+.stat-box .l{font-size:.75rem;color:#64748b;text-transform:uppercase;margin-top:.2rem}
+.data-table-wrap{max-height:500px;overflow:auto;border:1px solid #e2e8f0;border-radius:8px}
+.pat-card{background:white;border:1px solid #e2e8f0;border-radius:12px;padding:1.5rem;margin-bottom:1.5rem}
+.pat-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1rem;padding-bottom:1rem;border-bottom:1px solid #e2e8f0}
+.pat-avatar{width:60px;height:60px;border-radius:50%;background:linear-gradient(135deg,#0f52ba,#7c3aed);color:white;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:1.3rem}
+.section-med{margin-top:1.5rem}
+.section-med h4{font-size:.95rem;font-weight:600;color:#0f52ba;margin-bottom:.8rem;display:flex;align-items:center;gap:.5rem}
+.med-item{padding:.8rem;background:#f8fafc;border-radius:8px;margin-bottom:.5rem;border-left:3px solid #0f52ba}
+.med-item .top{display:flex;justify-content:space-between;margin-bottom:.3rem}
+.med-item .desc{font-size:.82rem;color:#64748b}
+canvas{max-height:400px}
+@media(max-width:768px){.side{transform:translateX(-100%);transition:.3s}.side.open{transform:translateX(0)}main{margin-left:0;padding:1rem;padding-top:4rem}.row,.row3{grid-template-columns:1fr}.mob{display:block}.stats{grid-template-columns:1fr 1fr}#map{height:400px}.pat-header{flex-direction:column;gap:1rem}}
+</style>
+</head>
+<body>
+
+<div id="toast"></div>
+<button class="mob" onclick="document.querySelector('.side').classList.toggle('open')">☰</button>
+
+<div id="loginScreen" class="auth">
+<div class="box">
+<h1>🏥 Nexus Care</h1>
+<p>Plateforme pour Infirmiers et Sages-Femmes</p>
+<div class="mb"><label>Email</label><input id="logEmail" value="amina.benali@nexuscare.dz"></div>
+<div class="mb"><label>Mot de passe</label><input type="password" id="logPass" value="amina123"></div>
+<button class="btn btn-p btn-block" onclick="doLogin()">Se connecter</button>
+<div style="margin-top:1rem;padding:.8rem;background:#f1f5f9;border-radius:8px;font-size:.75rem;line-height:1.6">
+<strong>Comptes de test :</strong><br>
+👩‍⚕️ amina.benali@nexuscare.dz / amina123<br>
+🤰 yasmine.khelifi@nexuscare.dz / yasmine123<br>
+🚑 karim.mansouri@nexuscare.dz / karim123<br>
+⚙️ admin@nexuscare.dz / admin123
+</div>
+<div id="err" style="color:#dc2626;text-align:center;margin-top:.8rem;font-size:.85rem"></div>
+</div>
+</div>
+
+<div id="app" class="hidden">
+<aside class="side">
+<h2>🏥 Nexus Care</h2>
+<a onclick="nav('dash')" data-p="dash" class="on">📊 Tableau de bord</a>
+<a onclick="nav('agenda')" data-p="agenda">📅 Agenda</a>
+<a onclick="nav('patients')" data-p="patients">👥 Patients</a>
+<a onclick="nav('medications')" data-p="medications">💊 Médicaments</a>
+<a onclick="nav('soins')" data-p="soins">💉 Soins administrés</a>
+<a onclick="nav('map')" data-p="map">🗺️ Carte</a>
+<a onclick="nav('missions')" data-p="missions">💼 Missions</a>
+<a onclick="nav('messages')" data-p="messages">💬 Messages</a>
+<a onclick="nav('ai')" data-p="ai">🧠 IA Clinique</a>
+<a onclick="nav('billing')" data-p="billing">💰 Facturation</a>
+<a onclick="nav('research')" data-p="research">📈 Étude & Données</a>
+<a onclick="nav('charts')" data-p="charts">📊 Graphiques</a>
+<a onclick="nav('report')" data-p="report">📄 Rapport d'étude</a>
+<a onclick="nav('profile')" data-p="profile">👤 Profil</a>
+<div class="foot">
+<div id="me" style="margin-bottom:.5rem"></div>
+<button class="btn btn-sm" style="background:transparent;color:#fca5a5;border-color:transparent;padding:.4rem 0" onclick="logout()">Déconnexion</button>
+</div>
+</aside>
+
+<main>
+<div id="p-dash" class="page">
+<h1 id="hello">Bonjour</h1>
+<div class="stats">
+<div class="stat"><div class="v" id="s1">0</div><div class="l">Patients</div></div>
+<div class="stat g"><div class="v" id="s2">0</div><div class="l">RDV à venir</div></div>
+<div class="stat o"><div class="v" id="s3">0</div><div class="l">Traitements actifs</div></div>
+<div class="stat p"><div class="v" id="s4">0</div><div class="l">DZD encaissés</div></div>
+</div>
+<div class="row">
+<div class="card"><h3>📅 Prochains rendez-vous</h3><div id="nextRdv"></div></div>
+<div class="card"><h3>💊 Traitements récents</h3><div id="nextMed"></div></div>
+</div>
+</div>
+
+<div id="p-agenda" class="page hidden">
+<h1>📅 Mon Agenda</h1>
+<div class="card">
+<button class="btn btn-p btn-sm mb" onclick="showForm('rdv')">➕ Nouveau RDV</button>
+<div id="rdvForm" class="hidden mb" style="padding:1rem;background:#f8fafc;border-radius:8px">
+<div class="row"><div class="mb"><label>Patient</label><select id="fRdvPat"></select></div><div class="mb"><label>Type</label><select id="fRdvTyp"><option value="consultation">Consultation</option><option value="soin">Soin à domicile</option><option value="urgence">Urgence</option><option value="suivi">Suivi grossesse</option><option value="vaccination">Vaccination</option></select></div></div>
+<div class="row"><div class="mb"><label>Date</label><input type="date" id="fRdvDate"></div><div class="mb"><label>Heure</label><input type="time" id="fRdvHeure" value="09:00"></div></div>
+<div class="mb"><label>Notes</label><input id="fRdvNotes"></div>
+<button class="btn btn-p btn-sm" onclick="addRdv()">Enregistrer</button>
+</div>
+<div id="rdvTable"></div>
+</div>
+</div>
+
+<div id="p-patients" class="page hidden">
+<h1>👥 Mes Patients</h1>
+<div class="card">
+<button class="btn btn-p btn-sm mb" onclick="showForm('pat')">➕ Nouveau patient</button>
+<div id="patForm" class="hidden mb" style="padding:1rem;background:#f8fafc;border-radius:8px">
+<div class="row"><div class="mb"><label>Prénom</label><input id="fPatPrenom"></div><div class="mb"><label>Nom</label><input id="fPatNom"></div></div>
+<div class="row"><div class="mb"><label>Date de naissance</label><input type="date" id="fPatNaissance"></div><div class="mb"><label>Sexe</label><select id="fPatSexe"><option value="M">Masculin</option><option value="F">Féminin</option></select></div></div>
+<div class="row"><div class="mb"><label>Téléphone</label><input id="fPatTel"></div><div class="mb"><label>Wilaya</label><input id="fPatWilaya"></div></div>
+<div class="mb"><label>Adresse</label><input id="fPatAdresse"></div>
+<div class="row"><div class="mb"><label>Coordonnées GPS</label><input id="fPatCoords" placeholder="36.7538,3.0588"></div><div class="mb"><label>Groupe sanguin</label><select id="fPatSang"><option value="">—</option><option>A+</option><option>A-</option><option>B+</option><option>B-</option><option>AB+</option><option>AB-</option><option>O+</option><option>O-</option></select></div></div>
+<div class="row"><div class="mb"><label>Poids (kg)</label><input type="number" id="fPatPoids" step="0.1"></div><div class="mb"><label>Taille (cm)</label><input type="number" id="fPatTaille"></div></div>
+<div class="mb"><label>Antécédents médicaux</label><input id="fPatAntecedents" placeholder="ex: HTA, cholestérol"></div>
+<div class="mb"><label>Notes générales</label><textarea id="fPatNotes" rows="2"></textarea></div>
+<button class="btn btn-p btn-sm" onclick="addPat()">Enregistrer</button>
+</div>
+<div id="patTable"></div>
+</div>
+</div>
+
+<div id="p-medications" class="page hidden">
+<h1>💊 Médicaments & Traitements</h1>
+<div class="card">
+<button class="btn btn-p btn-sm mb" onclick="showForm('med')">➕ Nouveau médicament</button>
+<div id="medForm" class="hidden mb" style="padding:1rem;background:#f8fafc;border-radius:8px">
+<div class="row"><div class="mb"><label>Patient</label><select id="fMedPat"></select></div><div class="mb"><label>Médicament</label><input id="fMedNom" placeholder="ex: Metformine"></div></div>
+<div class="row"><div class="mb"><label>Dose</label><input id="fMedDose" placeholder="ex: 850 mg"></div><div class="mb"><label>Fréquence</label><input id="fMedFreq" placeholder="ex: 2x/jour"></div></div>
+<div class="row"><div class="mb"><label>Voie</label><select id="fMedVoie"><option>Orale</option><option>Intraveineuse (IV)</option><option>Intramusculaire (IM)</option><option>Sous-cutanée (SC)</option><option>Rectale</option><option>Sublinguale</option><option>Topique</option><option>Inhalation</option></select></div><div class="mb"><label>Indication</label><input id="fMedIndication" placeholder="ex: Diabète type 2"></div></div>
+<div class="row"><div class="mb"><label>Date début</label><input type="date" id="fMedDebut"></div><div class="mb"><label>Date fin</label><input type="date" id="fMedFin"></div></div>
+<div class="row"><div class="mb"><label>Durée</label><input id="fMedDuree" placeholder="ex: 3 mois, à vie"></div><div class="mb"><label>Prescripteur</label><input id="fMedPrescripteur"></div></div>
+<div class="mb"><label>Posologie</label><textarea id="fMedPosologie" rows="2"></textarea></div>
+<button class="btn btn-p btn-sm" onclick="addMed()">Enregistrer</button>
+</div>
+<div id="medTable"></div>
+</div>
+</div>
+
+<div id="p-soins" class="page hidden">
+<h1>💉 Soins administrés</h1>
+<div class="card">
+<button class="btn btn-p btn-sm mb" onclick="showForm('soin')">➕ Nouveau soin</button>
+<div id="soinForm" class="hidden mb" style="padding:1rem;background:#f8fafc;border-radius:8px">
+<div class="row"><div class="mb"><label>Patient</label><select id="fSoinPat"></select></div><div class="mb"><label>Date & heure</label><input type="datetime-local" id="fSoinDate"></div></div>
+<div class="row"><div class="mb"><label>Type de soin</label><select id="fSoinType"><option>Injection</option><option>Perfusion</option><option>Pansement</option><option>Prise de sang</option><option>Vaccination</option><option>Prise de tension</option><option>Injection insuline</option><option>Aérosol</option><option>Sonde urinaire</option><option>Autre</option></select></div><div class="mb"><label>Médicament</label><input id="fSoinMed"></div></div>
+<div class="row"><div class="mb"><label>Dose administrée</label><input id="fSoinDose"></div><div class="mb"><label>Voie</label><select id="fSoinVoie"><option>SC</option><option>IM</option><option>IV</option><option>Orale</option><option>Locale</option></select></div></div>
+<div class="row"><div class="mb"><label>Durée (min)</label><input type="number" id="fSoinDuree" value="15"></div><div class="mb"><label>Lieu</label><input id="fSoinLieu"></div></div>
+<div class="mb"><label>Observations</label><textarea id="fSoinObs" rows="2"></textarea></div>
+<div class="mb"><label>Constantes</label><input id="fSoinConst" placeholder="TA 120/80, FC 75, T° 37.2"></div>
+<button class="btn btn-p btn-sm" onclick="addSoin()">Enregistrer</button>
+</div>
+<div id="soinTable"></div>
+</div>
+</div>
+
+<div id="p-map" class="page hidden">
+<h1>🗺️ Carte des patients</h1>
+<div style="display:flex;gap:.5rem;margin-bottom:1rem;flex-wrap:wrap">
+<button class="btn btn-sm" onclick="locateMe()">📍 Ma position</button>
+<button class="btn btn-sm" onclick="fitAllMarkers()">🔍 Voir tous</button>
+</div>
+<div class="card" style="padding:.5rem">
+<div id="map-style-picker"></div>
+<div id="map"></div>
+</div>
+<div class="card"><h3>📍 Patients géolocalisés</h3><div id="geoList"></div></div>
+</div>
+
+<div id="p-missions" class="page hidden">
+<h1>💼 Missions</h1>
+<div class="card"><h3>Missions ouvertes</h3><div id="misList"></div></div>
+</div>
+
+<div id="p-messages" class="page hidden">
+<h1>💬 Messages</h1>
+<div class="card"><div id="msgList"></div></div>
+</div>
+
+<div id="p-ai" class="page hidden">
+<h1>🧠 IA Clinique</h1>
+<div class="card">
+<h3>Calcul de dose</h3>
+<div class="row"><div class="mb"><label>Dose (mg/kg)</label><input type="number" id="aiDose" step=".01" value="15"></div><div class="mb"><label>Poids (kg)</label><input type="number" id="aiPoids" value="70"></div></div>
+<div class="mb"><label>Concentration (mg/mL)</label><input type="number" id="aiConc" value="100"></div>
+<button class="btn btn-p btn-sm" onclick="calcDose()">Calculer</button>
+<div id="aiOut" style="margin-top:1rem"></div>
+</div>
+<div class="card">
+<h3>IMC</h3>
+<div class="row"><div class="mb"><label>Poids (kg)</label><input type="number" id="imcP" value="70"></div><div class="mb"><label>Taille (cm)</label><input type="number" id="imcT" value="170"></div></div>
+<button class="btn btn-p btn-sm" onclick="calcIMC()">Calculer</button>
+<div id="imcOut" style="margin-top:1rem"></div>
+</div>
+</div>
+
+<div id="p-billing" class="page hidden">
+<h1>💰 Facturation</h1>
+<div class="card"><div id="invTable"></div></div>
+</div>
+
+<div id="p-research" class="page hidden">
+<h1>📈 Étude & Analyse des Données</h1>
+<p style="color:#64748b;margin-bottom:1.5rem">Analysez vos données cliniques et exportez-les pour la recherche.</p>
+<div class="card"><h3>📊 Vue d'ensemble</h3><div class="row3" id="researchStats"></div></div>
+<div class="card"><h3>💊 Analyse des médicaments</h3><div id="medAnalysis"></div></div>
+<div class="card"><h3>💉 Analyse des soins</h3><div id="soinAnalysis"></div></div>
+<div class="card"><h3>🩺 Analyse des pathologies</h3><div id="pathoAnalysis"></div></div>
+<div class="card"><h3>👥 Démographie</h3><div id="demoAnalysis"></div></div>
+<div class="card">
+<h3>📥 Export des données</h3>
+<div class="row">
+<div class="mb"><label>Type</label><select id="exportType">
+<option value="full-clinical">🔬 Base clinique complète</option>
+<option value="patients">Patients uniquement</option>
+<option value="medications">Médicaments prescrits</option>
+<option value="soins">Soins administrés</option>
+<option value="medical">Données médicales (pathologies, IMC)</option>
+<option value="all">Toutes les données</option>
+</select></div>
+<div class="mb"><label>Anonymisation</label><select id="exportAnon">
+<option value="no">Non — noms visibles</option>
+<option value="yes">Oui — anonymiser (P001...)</option>
+</select></div>
+</div>
+<div style="display:flex;gap:.5rem;flex-wrap:wrap">
+<button class="btn btn-p" onclick="exportCSV()">📄 CSV (Excel)</button>
+<button class="btn btn-s" onclick="exportJSON()">🗂️ JSON</button>
+<button class="btn btn-w" onclick="exportExcelHTML()">📊 Excel (.xls)</button>
+</div>
+</div>
+<div class="card"><h3>👁️ Aperçu</h3><div id="previewData"></div></div>
+</div>
+
+<div id="p-charts" class="page hidden">
+<h1>📊 Graphiques interactifs</h1>
+<div class="row">
+<div class="card"><h3>⚧ Répartition par sexe</h3><canvas id="chartSexe"></canvas></div>
+<div class="card"><h3>👥 Tranches d'âge</h3><canvas id="chartAge"></canvas></div>
+</div>
+<div class="row">
+<div class="card"><h3>🩺 Top pathologies</h3><canvas id="chartPatho"></canvas></div>
+<div class="card"><h3>💊 Top médicaments</h3><canvas id="chartMed"></canvas></div>
+</div>
+<div class="card"><h3>📈 Évolution mensuelle des consultations</h3><canvas id="chartMois"></canvas></div>
+</div>
+
+<div id="p-report" class="page hidden">
+<h1>📄 Rapport d'étude</h1>
+<p style="color:#64748b;margin-bottom:1.5rem">Générez un rapport complet prêt pour mémoire, thèse ou publication.</p>
+<div class="card">
+<h3>⚙️ Options du rapport</h3>
+<div class="row">
+<div class="mb"><label>Titre du rapport</label><input id="rptTitre" value="Étude descriptive de la patientèle"></div>
+<div class="mb"><label>Auteur / Institution</label><input id="rptAuteur" value="Amina Benali — Infirmière libérale"></div>
+</div>
+<div class="row">
+<div class="mb"><label>Période</label><input id="rptPeriode" value="2024 - 2025"></div>
+<div class="mb"><label>Anonymisation</label><select id="rptAnon"><option value="yes">Anonymisé (recommandé)</option><option value="no">Noms visibles</option></select></div>
+</div>
+<div class="mb"><label>Sections à inclure</label>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-top:.5rem">
+<label style="display:flex;align-items:center;gap:.5rem;font-weight:400"><input type="checkbox" id="sec1" checked style="width:auto"> Démographie</label>
+<label style="display:flex;align-items:center;gap:.5rem;font-weight:400"><input type="checkbox" id="sec2" checked style="width:auto"> Pathologies</label>
+<label style="display:flex;align-items:center;gap:.5rem;font-weight:400"><input type="checkbox" id="sec3" checked style="width:auto"> Médicaments</label>
+<label style="display:flex;align-items:center;gap:.5rem;font-weight:400"><input type="checkbox" id="sec4" checked style="width:auto"> Soins administrés</label>
+<label style="display:flex;align-items:center;gap:.5rem;font-weight:400"><input type="checkbox" id="sec5" checked style="width:auto"> Liste patients</label>
+</div>
+</div>
+<button class="btn btn-p" onclick="generateReport()">📄 Générer le rapport PDF</button>
+</div>
+</div>
+
+<div id="p-profile" class="page hidden">
+<h1>👤 Mon Profil</h1>
+<div class="card">
+<div class="row"><div class="mb"><label>Prénom</label><input id="prP"></div><div class="mb"><label>Nom</label><input id="prN"></div></div>
+<div class="row"><div class="mb"><label>Téléphone</label><input id="prT"></div><div class="mb"><label>Wilaya</label><input id="prW"></div></div>
+<div class="row"><div class="mb"><label>Spécialité</label><input id="prS"></div><div class="mb"><label>Tarif horaire (DZD)</label><input type="number" id="prR"></div></div>
+<div class="mb"><label>Bio</label><textarea id="prB" rows="3"></textarea></div>
+<button class="btn btn-p btn-sm" onclick="saveProfile()">Enregistrer</button>
+<button class="btn btn-sm" style="margin-left:.5rem" onclick="resetDemo()">🔄 Restaurer la démo</button>
+<div style="margin-top:1rem;padding:1rem;background:#f8fafc;border-radius:8px">
+<h4 style="font-size:.9rem;margin-bottom:.5rem">💾 Sauvegarde des données</h4>
+<p style="font-size:.8rem;color:#64748b;margin-bottom:.8rem">Sauvegardez toutes vos données dans un fichier JSON pour les restaurer plus tard.</p>
+<button class="btn btn-s btn-sm" onclick="exportBackup()">📥 Sauvegarder tout</button>
+<button class="btn btn-w btn-sm" style="margin-left:.5rem" onclick="importBackup()">📤 Restaurer depuis un fichier</button>
+</div>
+</div>
+</div>
+</main>
+</div>
+
+<script>
+var SEED = {
+  users: [
+    {id:1,email:"admin@nexuscare.dz",password:"admin123",prenom:"Admin",nom:"Système",role:"admin",wilaya:"Alger",specialite:"Administration",tarif:0,bio:"Administrateur.",tel:"0555000001"},
+    {id:2,email:"amina.benali@nexuscare.dz",password:"amina123",prenom:"Amina",nom:"Benali",role:"nurse",wilaya:"Alger",specialite:"Soins à domicile",tarif:1500,bio:"Infirmière libérale.",tel:"0661123456"},
+    {id:3,email:"yasmine.khelifi@nexuscare.dz",password:"yasmine123",prenom:"Yasmine",nom:"Khelifi",role:"midwife",wilaya:"Oran",specialite:"Suivi grossesse",tarif:2000,bio:"Sage-femme libérale.",tel:"0770987654"},
+    {id:4,email:"karim.mansouri@nexuscare.dz",password:"karim123",prenom:"Karim",nom:"Mansouri",role:"nurse",wilaya:"Constantine",specialite:"Urgences",tarif:2500,bio:"Infirmier urgentiste.",tel:"0540112233"}
+  ],
+  patients: [
+    {id:1,owner:2,prenom:"Mohamed",nom:"Zerrouki",naissance:"1958-04-12",sexe:"M",tel:"0555112233",wilaya:"Alger",adresse:"12 Rue des Oliviers, Kouba",notes:"",coords:"36.7197,3.0798",sang:"O+",poids:82,taille:175,antecedents:"HTA, rétinopathie débutante"},
+    {id:2,owner:2,prenom:"Fatima",nom:"Ait Ali",naissance:"1972-09-22",sexe:"F",tel:"0661223344",wilaya:"Alger",adresse:"45 Bd Mohamed V",notes:"",coords:"36.7631,3.0507",sang:"A+",poids:65,taille:160,antecedents:"Arthrose genou droit"},
+    {id:3,owner:2,prenom:"Rachid",nom:"Belkacem",naissance:"1955-01-30",sexe:"M",tel:"0770334455",wilaya:"Alger",adresse:"8 Rue Didouche Mourad",notes:"",coords:"36.7680,3.0588",sang:"B+",poids:78,taille:172,antecedents:"HTA 10 ans"},
+    {id:4,owner:2,prenom:"Yacine",nom:"Hamdani",naissance:"1990-06-15",sexe:"M",tel:"0550778899",wilaya:"Alger",adresse:"Cité 500 logements, Kouba",notes:"",coords:"36.7185,3.0820",sang:"AB+",poids:70,taille:180,antecedents:"Asthme depuis l'enfance"},
+    {id:5,owner:2,prenom:"Zohra",nom:"Benaissa",naissance:"1942-11-08",sexe:"F",tel:"0662889900",wilaya:"Alger",adresse:"Rue Larbi Ben M'hidi",notes:"",coords:"36.7722,3.0571",sang:"O-",poids:55,taille:158,antecedents:"Ostéoporose"},
+    {id:6,owner:3,prenom:"Nadia",nom:"Cherif",naissance:"1995-03-18",sexe:"F",tel:"0540445566",wilaya:"Oran",adresse:"22 Rue Emir Abdelkader",notes:"",coords:"35.6971,-0.6308",sang:"A+",poids:72,taille:165,antecedents:"Aucun"},
+    {id:7,owner:3,prenom:"Salima",nom:"Bouzidi",naissance:"1998-07-25",sexe:"F",tel:"0550556677",wilaya:"Oran",adresse:"Cité 1000 logements",notes:"",coords:"35.7105,-0.5850",sang:"B-",poids:68,taille:163,antecedents:"G1P1"},
+    {id:8,owner:4,prenom:"Ali",nom:"Meziane",naissance:"1985-12-05",sexe:"M",tel:"0662667788",wilaya:"Constantine",adresse:"Route Ain Smara",notes:"",coords:"36.3650,6.6147",sang:"O+",poids:75,taille:178,antecedents:"Asthme"}
+  ],
+  medications: [
+    {id:1,patient:1,owner:2,nom:"Metformine",dose:"850 mg",freq:"2x/jour",voie:"Orale",indication:"Diabète type 2",debut:"2020-03-15",fin:"",duree:"À vie",prescripteur:"Dr. Ahmed",posologie:"1 comprimé matin et soir"},
+    {id:2,patient:1,owner:2,nom:"Insuline Lantus",dose:"20 UI",freq:"1x/jour le soir",voie:"Sous-cutanée (SC)",indication:"Diabète type 2",debut:"2023-06-10",fin:"",duree:"À vie",prescripteur:"Dr. Ahmed",posologie:"Injection SC au coucher"},
+    {id:3,patient:1,owner:2,nom:"Amlodipine",dose:"5 mg",freq:"1x/jour",voie:"Orale",indication:"Hypertension",debut:"2021-01-20",fin:"",duree:"À vie",prescripteur:"Dr. Benali",posologie:"1 comprimé le matin"},
+    {id:4,patient:2,owner:2,nom:"Paracétamol",dose:"1 g",freq:"3x/jour",voie:"Orale",indication:"Douleur post-opératoire",debut:"2025-01-15",fin:"2025-02-15",duree:"1 mois",prescripteur:"Dr. Cherif",posologie:"1 comprimé toutes les 8h"},
+    {id:5,patient:2,owner:2,nom:"HBPM (Lovenox)",dose:"4000 UI",freq:"1x/jour",voie:"Sous-cutanée (SC)",indication:"Prévention thromboembolique",debut:"2025-01-15",fin:"2025-02-05",duree:"3 semaines",prescripteur:"Dr. Cherif",posologie:"Injection SC le matin"},
+    {id:6,patient:3,owner:2,nom:"Amlodipine",dose:"10 mg",freq:"1x/jour",voie:"Orale",indication:"Hypertension artérielle",debut:"2015-05-10",fin:"",duree:"À vie",prescripteur:"Dr. Saidi",posologie:"1 comprimé le matin"},
+    {id:7,patient:3,owner:2,nom:"Aspirine",dose:"100 mg",freq:"1x/jour",voie:"Orale",indication:"Prévention cardiovasculaire",debut:"2015-05-10",fin:"",duree:"À vie",prescripteur:"Dr. Saidi",posologie:"1 comprimé le soir"},
+    {id:8,patient:4,owner:2,nom:"Ventoline",dose:"100 µg",freq:"À la demande",voie:"Inhalation",indication:"Asthme",debut:"2010-01-01",fin:"",duree:"À vie",prescripteur:"Dr. Haddad",posologie:"2 bouffées si crise"},
+    {id:9,patient:4,owner:2,nom:"Sérétide",dose:"250 µg",freq:"2x/jour",voie:"Inhalation",indication:"Asthme sévère",debut:"2018-09-15",fin:"",duree:"À vie",prescripteur:"Dr. Haddad",posologie:"1 inhalation matin et soir"},
+    {id:10,patient:5,owner:2,nom:"Calcium + Vit D",dose:"500 mg/400 UI",freq:"1x/jour",voie:"Orale",indication:"Ostéoporose",debut:"2022-08-01",fin:"",duree:"À vie",prescripteur:"Dr. Bouzid",posologie:"1 comprimé le matin"},
+    {id:11,patient:5,owner:2,nom:"Paracétamol",dose:"500 mg",freq:"2x/jour",voie:"Orale",indication:"Arthrose",debut:"2023-01-10",fin:"",duree:"Continue",prescripteur:"Dr. Bouzid",posologie:"En cas de douleur"},
+    {id:12,patient:6,owner:3,nom:"Fer (Tardyferon)",dose:"80 mg",freq:"1x/jour",voie:"Orale",indication:"Anémie gravidique",debut:"2025-01-05",fin:"2025-06-05",duree:"5 mois",prescripteur:"Dr. Khelifi",posologie:"1 comprimé le matin à jeun"},
+    {id:13,patient:6,owner:3,nom:"Acide folique",dose:"400 µg",freq:"1x/jour",voie:"Orale",indication:"Grossesse",debut:"2024-12-01",fin:"2025-03-01",duree:"3 mois",prescripteur:"Dr. Khelifi",posologie:"1 comprimé le matin"}
+  ],
+  soins: [
+    {id:1,patient:1,owner:2,date:"2025-02-10T09:00",type:"Injection insuline",med:"Insuline Lantus",dose:"20 UI",voie:"SC",duree:10,lieu:"Domicile",obs:"Injection bien tolérée",constantes:"Glycémie 1.20 g/L"},
+    {id:2,patient:1,owner:2,date:"2025-02-09T09:00",type:"Injection insuline",med:"Insuline Lantus",dose:"20 UI",voie:"SC",duree:10,lieu:"Domicile",obs:"RAS",constantes:"Glycémie 1.15 g/L"},
+    {id:3,patient:2,owner:2,date:"2025-02-08T11:00",type:"Pansement",med:"Compresses stériles",dose:"—",voie:"Locale",duree:20,lieu:"Domicile",obs:"Plaie propre",constantes:"T° 36.8"},
+    {id:4,patient:3,owner:2,date:"2025-02-07T10:00",type:"Prise de tension",med:"—",dose:"—",voie:"—",duree:5,lieu:"Domicile",obs:"TA satisfaisante",constantes:"TA 130/85, FC 72"},
+    {id:5,patient:4,owner:2,date:"2025-02-06T14:00",type:"Aérosol",med:"Ventoline",dose:"2 bouffées",voie:"Inhalation",duree:15,lieu:"Domicile",obs:"Amélioration",constantes:"SpO2 98%"},
+    {id:6,patient:5,owner:2,date:"2025-02-05T10:00",type:"Injection",med:"Calcium",dose:"1 ampoule",voie:"IM",duree:10,lieu:"Domicile",obs:"RAS",constantes:"TA 125/80"},
+    {id:7,patient:6,owner:3,date:"2025-02-04T10:00",type:"Prise de sang",med:"—",dose:"—",voie:"—",duree:10,lieu:"Cabinet",obs:"Bilan prénatal",constantes:"—"},
+    {id:8,patient:1,owner:2,date:"2025-02-03T09:00",type:"Injection insuline",med:"Insuline Lantus",dose:"20 UI",voie:"SC",duree:10,lieu:"Domicile",obs:"RAS",constantes:"Glycémie 1.25 g/L"}
+  ],
+  rdv: [
+    {id:1,prat:2,pat:1,date:"2025-02-10T09:00",duree:30,type:"soin",notes:"Injection insuline",statut:"scheduled"},
+    {id:2,prat:2,pat:2,date:"2025-02-10T11:00",duree:45,type:"soin",notes:"Pansement",statut:"scheduled"},
+    {id:3,prat:2,pat:3,date:"2025-02-11T14:00",duree:30,type:"consultation",notes:"Contrôle tension",statut:"scheduled"}
+  ],
+  missions: [
+    {id:1,creator:3,title:"Remplacement sage-femme",desc:"Remplacement congé maternité.",lieu:"Oran",debut:"2025-02-15",fin:"2025-02-28",tarif:2200,statut:"open"},
+    {id:2,creator:4,title:"Renfort urgences",desc:"Renfort week-end.",lieu:"Constantine",debut:"2025-02-22",fin:"2025-02-23",tarif:3000,statut:"open"}
+  ],
+  messages: [
+    {id:1,from:2,to:3,content:"Bonjour Yasmine, dispo pour un remplacement ?",created:"2025-02-10T10:00"}
+  ],
+  invoices: [
+    {id:1,user:2,patient:1,date:"2025-02-01",items:[{desc:"Injections insuline",qty:10,price:800}],total:8000,statut:"paid"}
+  ]
+};
+
+var DB = {
+  get: function(k, d) {
+    try { var v = localStorage.getItem('nx_'+k); return v ? JSON.parse(v) : (d||[]); }
+    catch(e) { return d||[]; }
+  },
+  set: function(k, v) { localStorage.setItem('nx_'+k, JSON.stringify(v)); },
+  nextId: function(k) {
+    var a = this.get(k);
+    return a.length ? Math.max.apply(null, a.map(function(x){return x.id;})) + 1 : 1;
+  },
+  reset: function() {
+    ['users','patients','medications','soins','rdv','missions','messages','invoices','session'].forEach(function(k){
+      localStorage.removeItem('nx_'+k);
+    });
+  }
+};
+
+function seed() {
+  if (DB.get('users').length > 0) return;
+  Object.keys(SEED).forEach(function(k){ DB.set(k, SEED[k]); });
+}
+
+function me() {
+  var id = parseInt(localStorage.getItem('nx_session'));
+  if (!id) return null;
+  var users = DB.get('users');
+  for (var i = 0; i < users.length; i++) if (users[i].id === id) return users[i];
+  return null;
+}
+function setSession(id) { localStorage.setItem('nx_session', id); }
+
+function toast(msg, type) {
+  type = type || 'info';
+  var c = document.getElementById('toast');
+  var e = document.createElement('div');
+  e.className = 't ' + (type==='success'?'g':type==='danger'?'r':type==='warning'?'y':'');
+  e.textContent = msg;
+  c.appendChild(e);
+  setTimeout(function(){ e.style.opacity='0'; setTimeout(function(){e.remove();},400); }, 3000);
+}
+
+function doLogin() {
+  var email = document.getElementById('logEmail').value.toLowerCase().trim();
+  var pass = document.getElementById('logPass').value;
+  var users = DB.get('users');
+  var user = null;
+  for (var i = 0; i < users.length; i++) {
+    if (users[i].email === email && users[i].password === pass) { user = users[i]; break; }
+  }
+  if (!user) { document.getElementById('err').textContent = '❌ Identifiants incorrects'; return; }
+  document.getElementById('err').textContent = '';
+  setSession(user.id);
+  toast('Bienvenue ' + user.prenom + ' !', 'success');
+  startApp();
+}
+function logout() {
+  localStorage.removeItem('nx_session');
+  document.getElementById('app').classList.add('hidden');
+  document.getElementById('loginScreen').classList.remove('hidden');
+  toast('Déconnecté');
+}
+
+function startApp() {
+  var u = me();
+  if (!u) return;
+  document.getElementById('loginScreen').classList.add('hidden');
+  document.getElementById('app').classList.remove('hidden');
+  document.getElementById('me').innerHTML = '<strong>' + u.prenom + ' ' + u.nom + '</strong><br><span style="opacity:.6;font-size:.75rem">' + (u.role==='nurse'?'Infirmier(ère)':u.role==='midwife'?'Sage-femme':'Admin') + '</span>';
+  nav('dash');
+}
+
+function nav(p) {
+  var pages = document.querySelectorAll('.page');
+  for (var i = 0; i < pages.length; i++) pages[i].classList.add('hidden');
+  var t = document.getElementById('p-' + p);
+  if (t) t.classList.remove('hidden');
+  var links = document.querySelectorAll('.side a');
+  for (var j = 0; j < links.length; j++) {
+    links[j].classList.toggle('on', links[j].getAttribute('data-p') === p);
+  }
+  document.querySelector('.side').classList.remove('open');
+  if (p==='dash') renderDash();
+  if (p==='agenda') renderRdv();
+  if (p==='patients') renderPat();
+  if (p==='medications') renderMed();
+  if (p==='soins') renderSoin();
+  if (p==='map') renderMap();
+  if (p==='missions') renderMis();
+  if (p==='messages') renderMsg();
+  if (p==='billing') renderInv();
+  if (p==='research') renderResearch();
+  if (p==='charts') renderCharts();
+  if (p==='profile') renderProf();
+}
+
+function calcAge(dateStr) {
+  var d = new Date(dateStr);
+  if (isNaN(d.getTime())) return '—';
+  return Math.floor((Date.now() - d.getTime()) / (365.25 * 24 * 60 * 60 * 1000));
+}
+function showForm(w) { document.getElementById(w+'Form').classList.toggle('hidden'); }
+function patName(id) {
+  var all = DB.get('patients');
+  for (var i=0;i<all.length;i++) if (all[i].id===id) return all[i].prenom + ' ' + all[i].nom;
+  return '?';
+}
+
+function renderDash() {
+  var u = me();
+  var pats = DB.get('patients').filter(function(p){return p.owner===u.id;});
+  var rdvs = DB.get('rdv').filter(function(r){return r.prat===u.id;});
+  var meds = DB.get('medications').filter(function(m){return m.owner===u.id;});
+  var invs = DB.get('invoices').filter(function(i){return i.user===u.id;});
+  var now = new Date().toISOString();
+  var upcoming = rdvs.filter(function(r){return r.date >= now && r.statut==='scheduled';});
+  var paid = invs.filter(function(i){return i.statut==='paid';}).reduce(function(s,i){return s+i.total;},0);
+  document.getElementById('hello').textContent = 'Bonjour, ' + u.prenom + ' 👋';
+  document.getElementById('s1').textContent = pats.length;
+  document.getElementById('s2').textContent = upcoming.length;
+  document.getElementById('s3').textContent = meds.length;
+  document.getElementById('s4').textContent = paid.toLocaleString('fr-FR');
+  var html1 = '';
+  var list1 = upcoming.sort(function(a,b){return a.date.localeCompare(b.date);}).slice(0,5);
+  if (list1.length === 0) html1 = '<p class="empty">Aucun RDV à venir</p>';
+  else {
+    html1 = '<ul class="list">';
+    list1.forEach(function(r){
+      var d = new Date(r.date);
+      html1 += '<li><strong style="color:#0f52ba;min-width:60px">' + d.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'}) + '</strong>' +
+              '<div style="flex:1"><strong>' + patName(r.pat) + '</strong><div style="font-size:.8rem;color:#94a3b8">' + r.type + ' — ' + r.duree + 'min</div></div></li>';
+    });
+    html1 += '</ul>';
+  }
+  document.getElementById('nextRdv').innerHTML = html1;
+  var html2 = '';
+  if (meds.length === 0) html2 = '<p class="empty">Aucun traitement</p>';
+  else {
+    html2 = '<ul class="list">';
+    meds.slice(0,5).forEach(function(m){
+      html2 += '<li><div style="flex:1"><strong>💊 ' + m.nom + '</strong><div style="font-size:.8rem;color:#94a3b8">' + m.dose + ' — ' + m.freq + '</div></div>' +
+              '<span class="tag tag-p">' + patName(m.patient) + '</span></li>';
+    });
+    html2 += '</ul>';
+  }
+  document.getElementById('nextMed').innerHTML = html2;
+}
+
+function renderPat() {
+  var u = me();
+  var pats = DB.get('patients').filter(function(p){return p.owner===u.id;});
+  var meds = DB.get('medications');
+  var c = document.getElementById('patTable');
+  if (pats.length === 0) { c.innerHTML = '<p class="empty">Aucun patient</p>'; return; }
+  var h = '<div class="data-table-wrap"><table><thead><tr><th>Nom</th><th>Âge</th><th>Sexe</th><th>Traitements</th><th>Wilaya</th><th></th></tr></thead><tbody>';
+  pats.forEach(function(p){
+    var age = p.naissance ? calcAge(p.naissance) : '—';
+    var medCount = meds.filter(function(m){return m.patient===p.id;}).length;
+    h += '<tr><td><strong>' + p.prenom + ' ' + p.nom + '</strong></td>' +
+        '<td>' + age + ' ans</td>' +
+        '<td>' + (p.sexe==='M'?'♂ M':'♀ F') + '</td>' +
+        '<td><span class="tag tag-p">' + medCount + ' 💊</span></td>' +
+        '<td>' + (p.wilaya||'—') + '</td>' +
+        '<td><button class="btn btn-sm" onclick="viewPatient(' + p.id + ')">👁️</button> ' +
+        '<button class="btn btn-d btn-sm" onclick="delPat(' + p.id + ')">🗑</button></td></tr>';
+  });
+  h += '</tbody></table></div>';
+  c.innerHTML = h;
+}
+function addPat() {
+  var u = me();
+  var p = {
+    id: DB.nextId('patients'), owner: u.id,
+    prenom: document.getElementById('fPatPrenom').value,
+    nom: document.getElementById('fPatNom').value,
+    naissance: document.getElementById('fPatNaissance').value,
+    sexe: document.getElementById('fPatSexe').value,
+    tel: document.getElementById('fPatTel').value,
+    wilaya: document.getElementById('fPatWilaya').value || u.wilaya,
+    adresse: document.getElementById('fPatAdresse').value,
+    coords: document.getElementById('fPatCoords').value,
+    sang: document.getElementById('fPatSang').value,
+    poids: parseFloat(document.getElementById('fPatPoids').value) || null,
+    taille: parseFloat(document.getElementById('fPatTaille').value) || null,
+    antecedents: document.getElementById('fPatAntecedents').value,
+    notes: document.getElementById('fPatNotes').value
+  };
+  if (!p.prenom || !p.nom) { toast('Nom et prénom requis', 'danger'); return; }
+  var a = DB.get('patients'); a.push(p); DB.set('patients', a);
+  toast('Patient ajouté ✓', 'success');
+  document.getElementById('patForm').classList.add('hidden');
+  ['fPatPrenom','fPatNom','fPatNaissance','fPatTel','fPatWilaya','fPatAdresse','fPatCoords','fPatPoids','fPatTaille','fPatAntecedents','fPatNotes'].forEach(function(id){
+    var el = document.getElementById(id); if (el) el.value = '';
+  });
+  renderPat();
+}
+function delPat(id) {
+  if (!confirm('Supprimer ce patient et toutes ses données ?')) return;
+  DB.set('patients', DB.get('patients').filter(function(p){return p.id!==id;}));
+  DB.set('medications', DB.get('medications').filter(function(m){return m.patient!==id;}));
+  DB.set('soins', DB.get('soins').filter(function(s){return s.patient!==id;}));
+  DB.set('rdv', DB.get('rdv').filter(function(r){return r.pat!==id;}));
+  toast('Supprimé');
+  renderPat();
+}
+function viewPatient(id) {
+  var p = DB.get('patients').find(function(x){return x.id===id;});
+  if (!p) return;
+  var meds = DB.get('medications').filter(function(m){return m.patient===id;});
+  var soins = DB.get('soins').filter(function(s){return s.patient===id;}).sort(function(a,b){return b.date.localeCompare(a.date);});
+  var age = p.naissance ? calcAge(p.naissance) : '—';
+  var imc = (p.poids && p.taille) ? (p.poids/Math.pow(p.taille/100,2)).toFixed(1) : '—';
+  var html = '<div class="pat-card"><div class="pat-header">' +
+    '<div style="display:flex;gap:1rem;align-items:center">' +
+    '<div class="pat-avatar">' + p.prenom.charAt(0) + p.nom.charAt(0) + '</div>' +
+    '<div><h2 style="font-size:1.3rem">' + p.prenom + ' ' + p.nom + '</h2>' +
+    '<div style="color:#64748b;font-size:.9rem">' + age + ' ans • ' + (p.sexe==='M'?'Masculin':'Féminin') + ' • ' + (p.wilaya||'') + '</div></div></div>' +
+    '<button class="btn btn-sm" onclick="closeModal()">✕ Fermer</button></div>';
+  html += '<div class="row3" style="margin-bottom:1rem">' +
+    '<div class="stat-box"><div class="v">' + (p.sang||'—') + '</div><div class="l">Groupe</div></div>' +
+    '<div class="stat-box"><div class="v">' + (p.poids||'—') + ' kg</div><div class="l">Poids</div></div>' +
+    '<div class="stat-box"><div class="v">' + (p.taille||'—') + ' cm</div><div class="l">Taille</div></div>' +
+    '<div class="stat-box"><div class="v">' + imc + '</div><div class="l">IMC</div></div>' +
+    '<div class="stat-box"><div class="v">' + meds.length + '</div><div class="l">Médicaments</div></div>' +
+    '<div class="stat-box"><div class="v">' + soins.length + '</div><div class="l">Soins</div></div></div>';
+  if (p.antecedents) html += '<p style="margin:.5rem 0;font-size:.9rem"><strong>Antécédents :</strong> ' + p.antecedents + '</p>';
+  if (p.tel) html += '<p style="margin:.5rem 0;font-size:.9rem"><strong>Téléphone :</strong> ' + p.tel + '</p>';
+  if (p.adresse) html += '<p style="margin:.5rem 0;font-size:.9rem"><strong>Adresse :</strong> ' + p.adresse + '</p>';
+  html += '<div class="section-med"><h4>💊 Traitements (' + meds.length + ')</h4>';
+  if (meds.length === 0) html += '<p class="empty">Aucun médicament</p>';
+  else {
+    meds.forEach(function(m){
+      html += '<div class="med-item"><div class="top"><strong>' + m.nom + '</strong><span class="tag tag-p">' + m.dose + '</span></div>' +
+        '<div class="desc">📅 ' + m.freq + ' • 💉 ' + m.voie + ' • 🎯 ' + m.indication + '</div>' +
+        '<div class="desc">🗓️ Depuis ' + m.debut + (m.fin?' jusqu\'à '+m.fin:'') + ' • ' + m.duree + '</div>' +
+        (m.posologie ? '<div class="desc">📝 ' + m.posologie + '</div>' : '') +
+        (m.prescripteur ? '<div class="desc">👨‍⚕️ ' + m.prescripteur + '</div>' : '') +
+        '</div>';
+    });
+  }
+  html += '</div>';
+  html += '<div class="section-med"><h4>💉 Historique des soins (' + soins.length + ')</h4>';
+  if (soins.length === 0) html += '<p class="empty">Aucun soin</p>';
+  else {
+    html += '<div class="data-table-wrap"><table><thead><tr><th>Date</th><th>Type</th><th>Médicament</th><th>Dose</th><th>Voie</th><th>Notes</th></tr></thead><tbody>';
+    soins.forEach(function(s){
+      html += '<tr><td>' + new Date(s.date).toLocaleString('fr-FR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) + '</td>' +
+        '<td>' + s.type + '</td><td>' + (s.med||'—') + '</td><td>' + (s.dose||'—') + '</td><td>' + (s.voie||'—') + '</td>' +
+        '<td><small>' + (s.obs||'') + (s.constantes?' • '+s.constantes:'') + '</small></td></tr>';
+    });
+    html += '</tbody></table></div>';
+  }
+  html += '</div></div>';
+  showModal(html);
+}
+
+function renderMed() {
+  var u = me();
+  var meds = DB.get('medications').filter(function(m){return m.owner===u.id;});
+  var myPats = DB.get('patients').filter(function(p){return p.owner===u.id;});
+  var sel = document.getElementById('fMedPat');
+  sel.innerHTML = myPats.map(function(p){return '<option value="'+p.id+'">'+p.prenom+' '+p.nom+'</option>';}).join('');
+  var c = document.getElementById('medTable');
+  if (meds.length === 0) { c.innerHTML = '<p class="empty">Aucun médicament</p>'; return; }
+  var h = '<div class="data-table-wrap"><table><thead><tr><th>Patient</th><th>Médicament</th><th>Dose</th><th>Fréquence</th><th>Voie</th><th>Indication</th><th></th></tr></thead><tbody>';
+  meds.forEach(function(m){
+    h += '<tr><td><strong>' + patName(m.patient) + '</strong></td>' +
+        '<td>💊 ' + m.nom + '</td>' +
+        '<td><span class="tag tag-p">' + m.dose + '</span></td>' +
+        '<td>' + m.freq + '</td><td>' + m.voie + '</td><td>' + m.indication + '</td>' +
+        '<td><button class="btn btn-d btn-sm" onclick="delMed(' + m.id + ')">🗑</button></td></tr>';
+  });
+  h += '</tbody></table></div>';
+  c.innerHTML = h;
+}
+function addMed() {
+  var u = me();
+  var m = {
+    id: DB.nextId('medications'), owner: u.id,
+    patient: parseInt(document.getElementById('fMedPat').value),
+    nom: document.getElementById('fMedNom').value,
+    dose: document.getElementById('fMedDose').value,
+    freq: document.getElementById('fMedFreq').value,
+    voie: document.getElementById('fMedVoie').value,
+    indication: document.getElementById('fMedIndication').value,
+    debut: document.getElementById('fMedDebut').value,
+    fin: document.getElementById('fMedFin').value,
+    duree: document.getElementById('fMedDuree').value,
+    prescripteur: document.getElementById('fMedPrescripteur').value,
+    posologie: document.getElementById('fMedPosologie').value
+  };
+  if (!m.nom || !m.dose) { toast('Nom et dose requis', 'danger'); return; }
+  var a = DB.get('medications'); a.push(m); DB.set('medications', a);
+  toast('Médicament ajouté ✓', 'success');
+  document.getElementById('medForm').classList.add('hidden');
+  ['fMedNom','fMedDose','fMedFreq','fMedIndication','fMedDebut','fMedFin','fMedDuree','fMedPrescripteur','fMedPosologie'].forEach(function(id){
+    var el = document.getElementById(id); if (el) el.value = '';
+  });
+  renderMed();
+}
+function delMed(id) {
+  if (!confirm('Supprimer ?')) return;
+  DB.set('medications', DB.get('medications').filter(function(m){return m.id!==id;}));
+  toast('Supprimé');
+  renderMed();
+}
+
+function renderSoin() {
+  var u = me();
+  var soins = DB.get('soins').filter(function(s){return s.owner===u.id;}).sort(function(a,b){return b.date.localeCompare(a.date);});
+  var myPats = DB.get('patients').filter(function(p){return p.owner===u.id;});
+  var sel = document.getElementById('fSoinPat');
+  sel.innerHTML = myPats.map(function(p){return '<option value="'+p.id+'">'+p.prenom+' '+p.nom+'</option>';}).join('');
+  var c = document.getElementById('soinTable');
+  if (soins.length === 0) { c.innerHTML = '<p class="empty">Aucun soin</p>'; return; }
+  var h = '<div class="data-table-wrap"><table><thead><tr><th>Date</th><th>Patient</th><th>Type</th><th>Médicament</th><th>Dose</th><th>Voie</th><th>Lieu</th><th></th></tr></thead><tbody>';
+  soins.forEach(function(s){
+    h += '<tr><td>' + new Date(s.date).toLocaleString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}) + '</td>' +
+        '<td><strong>' + patName(s.patient) + '</strong></td>' +
+        '<td><span class="tag tag-c">' + s.type + '</span></td>' +
+        '<td>' + (s.med||'—') + '</td><td>' + (s.dose||'—') + '</td><td>' + (s.voie||'—') + '</td>' +
+        '<td>' + (s.lieu||'—') + '</td>' +
+        '<td><button class="btn btn-d btn-sm" onclick="delSoin(' + s.id + ')">🗑</button></td></tr>';
+  });
+  h += '</tbody></table></div>';
+  c.innerHTML = h;
+}
+function addSoin() {
+  var u = me();
+  var s = {
+    id: DB.nextId('soins'), owner: u.id,
+    patient: parseInt(document.getElementById('fSoinPat').value),
+    date: document.getElementById('fSoinDate').value,
+    type: document.getElementById('fSoinType').value,
+    med: document.getElementById('fSoinMed').value,
+    dose: document.getElementById('fSoinDose').value,
+    voie: document.getElementById('fSoinVoie').value,
+    duree: parseInt(document.getElementById('fSoinDuree').value) || 15,
+    lieu: document.getElementById('fSoinLieu').value,
+    obs: document.getElementById('fSoinObs').value,
+    constantes: document.getElementById('fSoinConst').value
+  };
+  if (!s.patient || !s.date) { toast('Patient et date requis', 'danger'); return; }
+  var a = DB.get('soins'); a.push(s); DB.set('soins', a);
+  toast('Soin enregistré ✓', 'success');
+  document.getElementById('soinForm').classList.add('hidden');
+  ['fSoinMed','fSoinDose','fSoinObs','fSoinConst','fSoinLieu'].forEach(function(id){
+    var el = document.getElementById(id); if (el) el.value = '';
+  });
+  renderSoin();
+}
+function delSoin(id) {
+  if (!confirm('Supprimer ?')) return;
+  DB.set('soins', DB.get('soins').filter(function(s){return s.id!==id;}));
+  toast('Supprimé');
+  renderSoin();
+}
+
+function renderRdv() {
+  var u = me();
+  var rdvs = DB.get('rdv').filter(function(r){return r.prat===u.id;}).sort(function(a,b){return b.date.localeCompare(a.date);});
+  var myPats = DB.get('patients').filter(function(p){return p.owner===u.id;});
+  var sel = document.getElementById('fRdvPat');
+  sel.innerHTML = myPats.map(function(p){return '<option value="'+p.id+'">'+p.prenom+' '+p.nom+'</option>';}).join('');
+  var c = document.getElementById('rdvTable');
+  if (rdvs.length === 0) { c.innerHTML = '<p class="empty">Aucun RDV</p>'; return; }
+  var h = '<table><thead><tr><th>Date</th><th>Patient</th><th>Type</th><th>Statut</th><th></th></tr></thead><tbody>';
+  rdvs.forEach(function(r){
+    var d = new Date(r.date);
+    var f = d.toLocaleDateString('fr-FR') + ' ' + d.toTimeString().substring(0,5);
+    var tag = r.statut==='scheduled'?'tag-b':r.statut==='completed'?'tag-g':'tag-r';
+    h += '<tr><td>' + f + '</td><td>' + patName(r.pat) + '</td><td>' + r.type + '</td>' +
+        '<td><span class="tag ' + tag + '">' + r.statut + '</span></td>' +
+        '<td><button class="btn btn-d btn-sm" onclick="delRdv(' + r.id + ')">🗑</button></td></tr>';
+  });
+  h += '</tbody></table>';
+  c.innerHTML = h;
+}
+function addRdv() {
+  var u = me();
+  var patId = parseInt(document.getElementById('fRdvPat').value);
+  var date = document.getElementById('fRdvDate').value;
+  if (!patId || !date) { toast('Patient et date requis', 'danger'); return; }
+  var r = {
+    id: DB.nextId('rdv'), prat: u.id, pat: patId,
+    date: date + 'T' + document.getElementById('fRdvHeure').value,
+    duree: 30, type: document.getElementById('fRdvTyp').value,
+    notes: document.getElementById('fRdvNotes').value, statut: 'scheduled'
+  };
+  var a = DB.get('rdv'); a.push(r); DB.set('rdv', a);
+  toast('RDV planifié ✓', 'success');
+  document.getElementById('rdvForm').classList.add('hidden');
+  renderRdv();
+}
+function delRdv(id) {
+  if (!confirm('Supprimer ?')) return;
+  DB.set('rdv', DB.get('rdv').filter(function(r){return r.id!==id;}));
+  renderRdv();
+}
+
+var mapInst = null, markers = [], currentLayer = null;
+function renderMap() {
+  var u = me();
+  var myPats = DB.get('patients').filter(function(p){return p.owner===u.id && p.coords;});
+  if (!mapInst) {
+    mapInst = L.map('map').setView([36.7538, 3.0588], 6);
+    setMapLayer('street');
+  }
+  var picker = document.getElementById('map-style-picker');
+  if (picker && picker.children.length === 0) {
+    picker.innerHTML =
+      '<button class="btn btn-sm" onclick="setMapLayer(\'street\')">🗺️ Plan</button>' +
+      '<button class="btn btn-sm" onclick="setMapLayer(\'satellite\')">🛰️ Satellite</button>' +
+      '<button class="btn btn-sm" onclick="setMapLayer(\'topo\')">⛰️ Relief</button>' +
+      '<button class="btn btn-sm" onclick="setMapLayer(\'light\')">☀️ Clair</button>';
+  }
+  markers.forEach(function(m){ m.remove(); });
+  markers = [];
+  myPats.forEach(function(p) {
+    var parts = p.coords.split(',');
+    var lat = parseFloat(parts[0]), lng = parseFloat(parts[1]);
+    if (isNaN(lat) || isNaN(lng)) return;
+    var icon = L.divIcon({
+      html: '<div class="pat-marker">' + p.prenom.charAt(0) + p.nom.charAt(0) + '</div>',
+      className: 'custom-pat', iconSize: [36, 36], iconAnchor: [18, 18]
+    });
+    var m = L.marker([lat, lng], { icon: icon }).addTo(mapInst)
+      .bindPopup('<strong>' + p.prenom + ' ' + p.nom + '</strong><br>' +
+        '📞 ' + (p.tel||'—') + '<br>📍 ' + (p.adresse||''));
+    markers.push(m);
+  });
+  if (markers.length > 0) {
+    mapInst.fitBounds(new L.featureGroup(markers).getBounds().pad(0.2));
+  }
+  var list = document.getElementById('geoList');
+  if (myPats.length === 0) list.innerHTML = '<p class="empty">Aucun patient géolocalisé</p>';
+  else {
+    var h = '';
+    myPats.forEach(function(p){
+      h += '<div style="display:flex;align-items:center;gap:1rem;padding:.7rem 0;border-bottom:1px solid #f1f5f9">' +
+        '<div class="pat-marker" style="position:relative">' + p.prenom.charAt(0) + p.nom.charAt(0) + '</div>' +
+        '<div style="flex:1"><strong>' + p.prenom + ' ' + p.nom + '</strong>' +
+        '<div style="font-size:.8rem;color:#94a3b8">' + (p.adresse||'') + '</div></div>' +
+        '<button class="btn btn-sm" onclick="focusPatient(' + p.id + ')">🎯 Voir</button></div>';
+    });
+    list.innerHTML = h;
+  }
+}
+function setMapLayer(style) {
+  if (!mapInst) return;
+  if (currentLayer) mapInst.removeLayer(currentLayer);
+  var layers = {
+    street: {url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', attr: '© Esri'},
+    satellite: {url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', attr: '© Esri'},
+    topo: {url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', attr: '© OpenTopoMap', subdomains: 'abc', max: 17},
+    light: {url: 'https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', attr: '© OpenStreetMap Hot', subdomains: 'abc'}
+  };
+  var cfg = layers[style] || layers.street;
+  currentLayer = L.tileLayer(cfg.url, {
+    attribution: cfg.attr, maxZoom: cfg.max || 19, subdomains: cfg.subdomains || 'abc'
+  }).addTo(mapInst);
+}
+function focusPatient(id) {
+  var p = DB.get('patients').find(function(x){return x.id===id;});
+  if (!p || !p.coords) return;
+  var parts = p.coords.split(',');
+  mapInst.setView([parseFloat(parts[0]), parseFloat(parts[1])], 15);
+  markers.forEach(function(m){
+    var ll = m.getLatLng();
+    if (Math.abs(ll.lat - parseFloat(parts[0])) < 0.0001) m.openPopup();
+  });
+}
+function locateMe() {
+  if (!navigator.geolocation) { toast('Non supporté', 'danger'); return; }
+  navigator.geolocation.getCurrentPosition(function(pos) {
+    mapInst.setView([pos.coords.latitude, pos.coords.longitude], 14);
+    L.circleMarker([pos.coords.latitude, pos.coords.longitude], {
+      color: '#dc2626', fillColor: '#dc2626', fillOpacity: 1, radius: 8
+    }).addTo(mapInst).bindPopup('📍 Vous êtes ici').openPopup();
+  }, function() { toast('Impossible', 'danger'); });
+}
+function fitAllMarkers() {
+  if (markers.length === 0) { toast('Aucun patient', 'warning'); return; }
+  mapInst.fitBounds(new L.featureGroup(markers).getBounds().pad(0.2));
+}
+
+function renderMis() {
+  var u = me();
+  var m = DB.get('missions');
+  var c = document.getElementById('misList');
+  if (m.length === 0) { c.innerHTML = '<p class="empty">Aucune mission</p>'; return; }
+  var h = '';
+  m.forEach(function(x){
+    h += '<div style="padding:1rem;border:1px solid #e2e8f0;border-radius:8px;margin-bottom:.8rem">' +
+        '<div style="display:flex;justify-content:space-between;margin-bottom:.5rem"><strong>' + x.title + '</strong><span class="tag tag-b">' + x.statut + '</span></div>' +
+        '<p style="font-size:.85rem;color:#64748b">' + x.desc + '</p>' +
+        '<div style="display:flex;gap:1rem;font-size:.8rem;color:#94a3b8;margin:.5rem 0"><span>📍 ' + x.lieu + '</span><span>📅 ' + x.debut + ' → ' + x.fin + '</span><span style="color:#00a86b;font-weight:700">💰 ' + x.tarif + ' DZD/h</span></div>' +
+        (x.creator !== u.id ? '<button class="btn btn-p btn-sm" onclick="applyMis(' + x.id + ')">Postuler</button>' : '<em style="color:#94a3b8;font-size:.85rem">Ma mission</em>') +
+        '</div>';
+  });
+  c.innerHTML = h;
+}
+function applyMis(id) {
+  if (!confirm('Postuler ?')) return;
+  var m = DB.get('missions');
+  for (var i=0;i<m.length;i++) if (m[i].id===id) m[i].statut='assigned';
+  DB.set('missions', m);
+  toast('Candidature envoyée ✓', 'success');
+  renderMis();
+}
+
+function renderMsg() {
+  var u = me();
+  var msgs = DB.get('messages');
+  var users = DB.get('users');
+  var mine = msgs.filter(function(m){return m.from===u.id || m.to===u.id;});
+  var c = document.getElementById('msgList');
+  if (mine.length === 0) { c.innerHTML = '<p class="empty">Aucun message</p>'; return; }
+  var h = '';
+  mine.forEach(function(m){
+    var otherId = m.from===u.id ? m.to : m.from;
+    var other = null;
+    for (var i=0;i<users.length;i++) if (users[i].id===otherId){other=users[i];break;}
+    h += '<div style="padding:1rem;border-bottom:1px solid #f1f5f9"><strong>' + (m.from===u.id?'📤':'📥') + ' ' + (other?other.prenom+' '+other.nom:'?') + '</strong>' +
+        '<p style="color:#475569;font-size:.9rem;margin-top:.3rem">' + m.content + '</p></div>';
+  });
+  c.innerHTML = h;
+}
+
+function calcDose() {
+  var d = parseFloat(document.getElementById('aiDose').value);
+  var p = parseFloat(document.getElementById('aiPoids').value);
+  var c = parseFloat(document.getElementById('aiConc').value);
+  if (!d || !p || !c) { toast('Remplir', 'danger'); return; }
+  document.getElementById('aiOut').innerHTML = '<div style="padding:1rem;background:#d1fae5;border-radius:8px;border-left:4px solid #00a86b">' +
+      '<strong>Dose totale :</strong> ' + (d*p).toFixed(2) + ' mg<br><strong>Volume :</strong> ' + ((d*p)/c).toFixed(2) + ' mL</div>';
+}
+function calcIMC() {
+  var p = parseFloat(document.getElementById('imcP').value);
+  var t = parseFloat(document.getElementById('imcT').value) / 100;
+  if (!p || !t) return;
+  var imc = p / (t*t);
+  var cat = imc<18.5?'Insuffisance':imc<25?'Normal':imc<30?'Surpoids':'Obésité';
+  document.getElementById('imcOut').innerHTML = '<div style="padding:1rem;background:#e6efff;border-radius:8px;border-left:4px solid #0f52ba">' +
+      '<strong>IMC :</strong> ' + imc.toFixed(1) + ' kg/m²<br><strong>Catégorie :</strong> ' + cat + '</div>';
+}
+
+function renderInv() {
+  var u = me();
+  var invs = DB.get('invoices').filter(function(i){return i.user===u.id;});
+  var c = document.getElementById('invTable');
+  if (invs.length === 0) { c.innerHTML = '<p class="empty">Aucune facture</p>'; return; }
+  var h = '<table><thead><tr><th>N°</th><th>Date</th><th>Patient</th><th>Total</th><th>Statut</th><th></th></tr></thead><tbody>';
+  invs.forEach(function(i){
+    var tag = i.statut==='paid'?'tag-g':'tag-y';
+    h += '<tr><td>#' + String(i.id).padStart(4,'0') + '</td><td>' + i.date + '</td><td>' + patName(i.patient) + '</td>' +
+        '<td><strong>' + i.total.toLocaleString('fr-FR') + ' DZD</strong></td>' +
+        '<td><span class="tag ' + tag + '">' + (i.statut==='paid'?'Payée':'En attente') + '</span></td>' +
+        '<td><button class="btn btn-p btn-sm" onclick="exportPDF(' + i.id + ')">📄</button></td></tr>';
+  });
+  h += '</tbody></table>';
+  c.innerHTML = h;
+}
+function exportPDF(id) {
+  try {
+    var u = me();
+    var inv = DB.get('invoices').find(function(x){return x.id===id;});
+    if (!inv) return;
+    var p = DB.get('patients').find(function(x){return x.id===inv.patient;});
+    var jsPDF = window.jspdf.jsPDF;
+    var doc = new jsPDF();
+    doc.setFillColor(15, 82, 186); doc.rect(0, 0, 210, 40, 'F');
+    doc.setTextColor(255, 255, 255); doc.setFontSize(24); doc.setFont('helvetica','bold');
+    doc.text('NEXUS CARE', 20, 20);
+    doc.setFontSize(11); doc.setFont('helvetica','normal');
+    doc.text('Plateforme Sante Professionnelle', 20, 28); doc.text('Algerie', 20, 34);
+    doc.setTextColor(0, 0, 0); doc.setFontSize(18); doc.setFont('helvetica','bold');
+    doc.text('FACTURE N° ' + String(inv.id).padStart(5, '0'), 20, 60);
+    doc.setFontSize(11); doc.setFont('helvetica','normal');
+    doc.text('Date : ' + inv.date, 20, 70);
+    doc.setFont('helvetica','bold'); doc.text('Emetteur :', 20, 85);
+    doc.setFont('helvetica','normal');
+    doc.text(u.prenom + ' ' + u.nom, 20, 92);
+    if (u.tel) doc.text('Tel : ' + u.tel, 20, 99);
+    if (p) {
+      doc.setFont('helvetica','bold'); doc.text('Patient :', 120, 85);
+      doc.setFont('helvetica','normal');
+      doc.text(p.prenom + ' ' + p.nom, 120, 92);
+      if (p.tel) doc.text('Tel : ' + p.tel, 120, 99);
+    }
+    var y = 135;
+    doc.setFillColor(230, 239, 255); doc.rect(20, y-6, 170, 10, 'F');
+    doc.setFont('helvetica','bold');
+    doc.text('Description', 25, y); doc.text('Qte', 130, y); doc.text('Prix', 145, y); doc.text('Total', 178, y);
+    doc.setFont('helvetica','normal'); y += 12;
+    inv.items.forEach(function(it){
+      doc.text(String(it.desc).substring(0,45), 25, y);
+      doc.text(String(it.qty), 130, y);
+      doc.text(it.price.toLocaleString('fr-FR') + ' DZD', 145, y);
+      doc.text((it.qty*it.price).toLocaleString('fr-FR') + ' DZD', 178, y);
+      y += 8;
+    });
+    y += 5; doc.line(20, y, 190, y); y += 10;
+    doc.setFontSize(14); doc.setFont('helvetica','bold');
+    doc.text('TOTAL :', 130, y); doc.text(inv.total.toLocaleString('fr-FR') + ' DZD', 178, y);
+    doc.save('facture-' + String(inv.id).padStart(5, '0') + '.pdf');
+    toast('PDF téléchargé ✓', 'success');
+  } catch (err) { toast('Erreur PDF', 'danger'); }
+}
+
+function renderResearch() {
+  var u = me();
+  var pats = DB.get('patients').filter(function(p){return p.owner===u.id;});
+  var meds = DB.get('medications').filter(function(m){return m.owner===u.id;});
+  var soins = DB.get('soins').filter(function(s){return s.owner===u.id;});
+  var rdvs = DB.get('rdv').filter(function(r){return r.prat===u.id;});
+  var invs = DB.get('invoices').filter(function(i){return i.user===u.id;});
+  var ages = pats.map(function(p){return p.naissance ? calcAge(p.naissance) : null;}).filter(function(x){return x!==null;});
+  var ageMoyen = ages.length ? (ages.reduce(function(a,b){return a+b;},0)/ages.length).toFixed(1) : '—';
+  var hommes = pats.filter(function(p){return p.sexe==='M';}).length;
+  var femmes = pats.filter(function(p){return p.sexe==='F';}).length;
+  var imcs = pats.map(function(p){return (p.poids&&p.taille)?p.poids/Math.pow(p.taille/100,2):null;}).filter(function(x){return x!==null;});
+  var imcMoyen = imcs.length ? (imcs.reduce(function(a,b){return a+b;},0)/imcs.length).toFixed(1) : '—';
+  var actifs = meds.filter(function(m){return !m.fin || new Date(m.fin) > new Date();}).length;
+  document.getElementById('researchStats').innerHTML =
+    '<div class="stat-box"><div class="v">' + pats.length + '</div><div class="l">Patients</div></div>' +
+    '<div class="stat-box"><div class="v">' + ageMoyen + '</div><div class="l">Âge moyen</div></div>' +
+    '<div class="stat-box"><div class="v">' + hommes + ' / ' + femmes + '</div><div class="l">H / F</div></div>' +
+    '<div class="stat-box"><div class="v">' + imcMoyen + '</div><div class="l">IMC moyen</div></div>' +
+    '<div class="stat-box"><div class="v">' + meds.length + '</div><div class="l">Médicaments</div></div>' +
+    '<div class="stat-box"><div class="v">' + soins.length + '</div><div class="l">Soins</div></div>' +
+    '<div class="stat-box"><div class="v">' + actifs + '</div><div class="l">Traitements actifs</div></div>' +
+    '<div class="stat-box"><div class="v">' + rdvs.length + '</div><div class="l">RDV</div></div>' +
+    '<div class="stat-box"><div class="v">' + invs.length + '</div><div class="l">Factures</div></div>';
+  var medCount = {};
+  meds.forEach(function(m){ var k = m.nom + ' ' + m.dose; medCount[k] = (medCount[k]||0) + 1; });
+  var medArr = Object.keys(medCount).map(function(k){return {name:k, count:medCount[k]};}).sort(function(a,b){return b.count - a.count;});
+  var h = '<p style="font-size:.85rem;color:#64748b;margin-bottom:1rem">Médicaments les plus prescrits</p>';
+  if (medArr.length === 0) h += '<p class="empty">Aucun</p>';
+  else {
+    var max = medArr[0].count;
+    medArr.slice(0, 15).forEach(function(x){
+      h += '<div class="bar-wrap"><div class="bar-label"><span>💊 ' + x.name + '</span><span><strong>' + x.count + '</strong></span></div>' +
+          '<div class="bar" style="width:' + (x.count/max*100) + '%"></div></div>';
+    });
+  }
+  var voies = {};
+  meds.forEach(function(m){ voies[m.voie] = (voies[m.voie]||0) + 1; });
+  if (Object.keys(voies).length > 0) {
+    h += '<h4 style="margin:1.5rem 0 .8rem;font-size:.9rem">💉 Voies d\'administration</h4>';
+    var maxV = Math.max.apply(null, Object.values(voies));
+    Object.keys(voies).forEach(function(k){
+      var pct = (voies[k]/meds.length*100).toFixed(0);
+      h += '<div class="bar-wrap"><div class="bar-label"><span>' + k + '</span><span><strong>' + voies[k] + '</strong> (' + pct + '%)</span></div>' +
+          '<div class="bar" style="width:' + (voies[k]/maxV*100) + '%;background:linear-gradient(90deg,#7c3aed,#a78bfa)"></div></div>';
+    });
+  }
+  document.getElementById('medAnalysis').innerHTML = h;
+  var types = {};
+  soins.forEach(function(s){ types[s.type] = (types[s.type]||0) + 1; });
+  var soinH = '<p style="font-size:.85rem;color:#64748b;margin-bottom:1rem">Types de soins</p>';
+  if (Object.keys(types).length === 0) soinH += '<p class="empty">Aucun</p>';
+  else {
+    var maxS = Math.max.apply(null, Object.values(types));
+    Object.keys(types).forEach(function(k){
+      var pct = (types[k]/soins.length*100).toFixed(0);
+      soinH += '<div class="bar-wrap"><div class="bar-label"><span>💉 ' + k + '</span><span><strong>' + types[k] + '</strong> (' + pct + '%)</span></div>' +
+          '<div class="bar" style="width:' + (types[k]/maxS*100) + '%;background:linear-gradient(90deg,#00a86b,#10b981)"></div></div>';
+    });
+  }
+  document.getElementById('soinAnalysis').innerHTML = soinH;
+  var pathos = {};
+  meds.forEach(function(m){ if (m.indication) pathos[m.indication] = (pathos[m.indication]||0) + 1; });
+  var pathoArr = Object.keys(pathos).map(function(k){return {name:k, count:pathos[k]};}).sort(function(a,b){return b.count - a.count;});
+  var pathoH = '<p style="font-size:.85rem;color:#64748b;margin-bottom:1rem">Pathologies traitées</p>';
+  if (pathoArr.length === 0) pathoH += '<p class="empty">Aucune</p>';
+  else {
+    var maxP = pathoArr[0].count;
+    pathoArr.forEach(function(x){
+      var pct = (x.count/meds.length*100).toFixed(0);
+      pathoH += '<div class="bar-wrap"><div class="bar-label"><span>🩺 ' + x.name + '</span><span><strong>' + x.count + '</strong> (' + pct + '%)</span></div>' +
+          '<div class="bar" style="width:' + (x.count/maxP*100) + '%;background:linear-gradient(90deg,#dc2626,#f87171)"></div></div>';
+    });
+  }
+  document.getElementById('pathoAnalysis').innerHTML = pathoH;
+  var tranches = {'0-15':0, '16-30':0, '31-45':0, '46-60':0, '61-75':0, '76+':0};
+  pats.forEach(function(p){
+    if (!p.naissance) return;
+    var age = calcAge(p.naissance);
+    if (age <= 15) tranches['0-15']++;
+    else if (age <= 30) tranches['16-30']++;
+    else if (age <= 45) tranches['31-45']++;
+    else if (age <= 60) tranches['46-60']++;
+    else if (age <= 75) tranches['61-75']++;
+    else tranches['76+']++;
+  });
+  var demoH = '<h4 style="margin:0 0 .8rem;font-size:.9rem">👥 Tranches d\'âge</h4>';
+  var maxT = Math.max.apply(null, Object.values(tranches)) || 1;
+  Object.keys(tranches).forEach(function(k){
+    var v = tranches[k];
+    var pct = pats.length ? (v/pats.length*100).toFixed(0) : 0;
+    demoH += '<div class="bar-wrap"><div class="bar-label"><span>' + k + ' ans</span><span><strong>' + v + '</strong> (' + pct + '%)</span></div>' +
+        '<div class="bar" style="width:' + (v/maxT*100) + '%"></div></div>';
+  });
+  var wilCount = {};
+  pats.forEach(function(p){ wilCount[p.wilaya||'—'] = (wilCount[p.wilaya||'—']||0) + 1; });
+  demoH += '<h4 style="margin:1.5rem 0 .8rem;font-size:.9rem">📍 Répartition géographique</h4>';
+  var maxW = Math.max.apply(null, Object.values(wilCount));
+  Object.keys(wilCount).forEach(function(k){
+    demoH += '<div class="bar-wrap"><div class="bar-label"><span>' + k + '</span><span><strong>' + wilCount[k] + '</strong></span></div>' +
+        '<div class="bar" style="width:' + (wilCount[k]/maxW*100) + '%;background:linear-gradient(90deg,#f59e0b,#fbbf24)"></div></div>';
+  });
+  document.getElementById('demoAnalysis').innerHTML = demoH;
+  renderPreview();
+}
+function renderPreview() {
+  var u = me();
+  var pats = DB.get('patients').filter(function(p){return p.owner===u.id;});
+  var meds = DB.get('medications');
+  var c = document.getElementById('previewData');
+  if (pats.length === 0) { c.innerHTML = '<p class="empty">Aucune donnée</p>'; return; }
+  var h = '<div class="data-table-wrap"><table><thead><tr>' +
+    '<th>Code</th><th>Âge</th><th>Sexe</th><th>IMC</th><th>Médicaments</th><th>Soins</th>' +
+    '</tr></thead><tbody>';
+  pats.slice(0, 15).forEach(function(p, idx){
+    var age = p.naissance ? calcAge(p.naissance) : '—';
+    var imc = (p.poids && p.taille) ? (p.poids/Math.pow(p.taille/100,2)).toFixed(1) : '—';
+    var mList = meds.filter(function(m){return m.patient===p.id;});
+    var mNames = mList.slice(0,3).map(function(m){return m.nom;}).join(', ');
+    if (mList.length > 3) mNames += ' +' + (mList.length - 3);
+    var sc = DB.get('soins').filter(function(s){return s.patient===p.id;}).length;
+    h += '<tr><td>P' + String(idx+1).padStart(3,'0') + '</td>' +
+        '<td>' + age + '</td><td>' + (p.sexe||'—') + '</td><td>' + imc + '</td>' +
+        '<td><small>' + (mNames||'—') + '</small></td><td>' + sc + '</td></tr>';
+  });
+  h += '</tbody></table></div>';
+  c.innerHTML = h;
+}
+
+function getExportData() {
+  var u = me();
+  var type = document.getElementById('exportType').value;
+  var anon = document.getElementById('exportAnon').value === 'yes';
+  var pats = DB.get('patients').filter(function(p){return p.owner===u.id;});
+  var meds = DB.get('medications').filter(function(m){return m.owner===u.id;});
+  var soins = DB.get('soins').filter(function(s){return s.owner===u.id;});
+  var patMap = {};
+  pats.forEach(function(p, idx){
+    patMap[p.id] = anon ? ('P' + String(idx+1).padStart(3, '0')) : (p.prenom + ' ' + p.nom);
+  });
+  if (type === 'full-clinical') {
+    return pats.map(function(p, idx){
+      var code = anon ? 'P'+String(idx+1).padStart(3,'0') : p.id;
+      var age = p.naissance ? calcAge(p.naissance) : '';
+      var imc = (p.poids && p.taille) ? (p.poids/Math.pow(p.taille/100,2)).toFixed(2) : '';
+      var pMeds = meds.filter(function(m){return m.patient===p.id;});
+      var pSoins = soins.filter(function(s){return s.patient===p.id;});
+      return {
+        Code_Patient: code, Nom: anon ? '—' : (p.prenom + ' ' + p.nom),
+        Age: age, Sexe: p.sexe || '', Groupe_Sanguin: p.sang || '',
+        Poids: p.poids || '', Taille: p.taille || '', IMC: imc,
+        Wilaya: p.wilaya || '', Antecedents: p.antecedents || '',
+        Nb_Medicaments: pMeds.length,
+        Liste_Medicaments: pMeds.map(function(m){return m.nom + ' ' + m.dose + ' (' + m.freq + ')';}).join(' | '),
+        Nb_Soins: pSoins.length,
+        Pathologies: pMeds.map(function(m){return m.indication;}).filter(function(v,i,a){return a.indexOf(v)===i;}).join(' | ')
+      };
+    });
+  }
+  if (type === 'patients') {
+    return pats.map(function(p, idx){
+      return {
+        ID: anon ? 'P'+String(idx+1).padStart(3,'0') : p.id,
+        Nom: anon ? '—' : p.prenom + ' ' + p.nom,
+        Naissance: p.naissance || '', Age: p.naissance ? calcAge(p.naissance) : '',
+        Sexe: p.sexe || '', Telephone: anon ? '—' : (p.tel || ''),
+        Wilaya: p.wilaya || '', Adresse: anon ? '—' : (p.adresse || ''),
+        GroupeSanguin: p.sang || '', Poids_kg: p.poids || '', Taille_cm: p.taille || '',
+        IMC: (p.poids && p.taille) ? (p.poids/Math.pow(p.taille/100,2)).toFixed(2) : '',
+        Antecedents: p.antecedents || ''
+      };
+    });
+  }
+  if (type === 'medications') {
+    return meds.map(function(m){
+      return {Patient: patMap[m.patient] || '?', Medicament: m.nom, Dose: m.dose, Frequence: m.freq,
+        Voie: m.voie, Indication: m.indication, Date_Debut: m.debut, Date_Fin: m.fin || '',
+        Duree: m.duree || '', Prescripteur: m.prescripteur || '', Posologie: m.posologie || ''};
+    });
+  }
+  if (type === 'soins') {
+    return soins.map(function(s){
+      return {Date: s.date, Patient: patMap[s.patient] || '?', Type: s.type, Medicament: s.med || '',
+        Dose: s.dose || '', Voie: s.voie || '', Duree_min: s.duree || '', Lieu: s.lieu || '',
+        Observations: s.obs || '', Constantes: s.constantes || ''};
+    });
+  }
+  if (type === 'medical') {
+    return pats.map(function(p, idx){
+      var pMeds = meds.filter(function(m){return m.patient===p.id;});
+      return {Code: 'P'+String(idx+1).padStart(3,'0'), Age: p.naissance ? calcAge(p.naissance) : '',
+        Sexe: p.sexe || '', GroupeSanguin: p.sang || '', Poids: p.poids || '', Taille: p.taille || '',
+        IMC: (p.poids && p.taille) ? (p.poids/Math.pow(p.taille/100,2)).toFixed(2) : '',
+        Antecedents: p.antecedents || '',
+        Medicaments: pMeds.map(function(m){return m.nom;}).join(', '),
+        Pathologies: pMeds.map(function(m){return m.indication;}).join(', ')};
+    });
+  }
+  return pats.map(function(p, idx){
+    var code = anon ? 'P'+String(idx+1).padStart(3,'0') : p.id;
+    return {Patient_ID: code, Nom: anon ? '—' : (p.prenom + ' ' + p.nom),
+      Age: p.naissance ? calcAge(p.naissance) : '', Sexe: p.sexe || '', Wilaya: p.wilaya || '',
+      Nb_Medicaments: meds.filter(function(m){return m.patient===p.id;}).length,
+      Nb_Soins: soins.filter(function(s){return s.patient===p.id;}).length};
+  });
+}
+function exportCSV() {
+  var data = getExportData();
+  if (data.length === 0) { toast('Aucune donnée', 'warning'); return; }
+  var headers = Object.keys(data[0]);
+  var csv = '\ufeff' + headers.join(';') + '\n';
+  data.forEach(function(row){
+    csv += headers.map(function(h){
+      var v = row[h];
+      if (v === null || v === undefined) v = '';
+      return '"' + String(v).replace(/"/g, '""') + '"';
+    }).join(';') + '\n';
+  });
+  download(csv, 'nexus-export-' + dateNow() + '.csv', 'text/csv;charset=utf-8');
+  toast('CSV téléchargé ✓ (' + data.length + ' lignes)', 'success');
+}
+function exportJSON() {
+  var data = getExportData();
+  var payload = {exported_at: new Date().toISOString(), type: document.getElementById('exportType').value,
+    anonymized: document.getElementById('exportAnon').value === 'yes', count: data.length, data: data};
+  download(JSON.stringify(payload, null, 2), 'nexus-export-' + dateNow() + '.json', 'application/json');
+  toast('JSON téléchargé ✓', 'success');
+}
+function exportExcelHTML() {
+  var data = getExportData();
+  if (data.length === 0) { toast('Aucune donnée', 'warning'); return; }
+  var headers = Object.keys(data[0]);
+  var html = '<table border="1"><thead><tr>';
+  headers.forEach(function(h){ html += '<th style="background:#0f52ba;color:white;padding:8px">' + h + '</th>'; });
+  html += '</tr></thead><tbody>';
+  data.forEach(function(row){
+    html += '<tr>';
+    headers.forEach(function(h){
+      var v = row[h] === null || row[h] === undefined ? '' : row[h];
+      html += '<td style="padding:5px">' + String(v).replace(/</g, '&lt;') + '</td>';
+    });
+    html += '</tr>';
+  });
+  html += '</tbody></table>';
+  var blob = '<html><head><meta charset="UTF-8"></head><body>' + html + '</body></html>';
+  download(blob, 'nexus-export-' + dateNow() + '.xls', 'application/vnd.ms-excel');
+  toast('Excel téléchargé ✓', 'success');
+}
+function dateNow() {
+  var d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+function download(content, filename, mime) {
+  var blob = new Blob([content], { type: mime });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a);
+  setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+}
+
+function exportBackup() {
+  var u = me();
+  var backup = {
+    version: '1.0', exported_at: new Date().toISOString(),
+    author: u.prenom + ' ' + u.nom,
+    data: {
+      users: DB.get('users'), patients: DB.get('patients'),
+      medications: DB.get('medications'), soins: DB.get('soins'),
+      rdv: DB.get('rdv'), missions: DB.get('missions'),
+      messages: DB.get('messages'), invoices: DB.get('invoices')
+    }
+  };
+  download(JSON.stringify(backup, null, 2), 'nexus-backup-' + dateNow() + '.json', 'application/json');
+  toast('Sauvegarde téléchargée ✓', 'success');
+}
+function importBackup() {
+  var input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.json';
+  input.onchange = function(e) {
+    var file = e.target.files[0];
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function(evt) {
+      try {
+        var backup = JSON.parse(evt.target.result);
+        if (!backup.data) throw new Error('Format invalide');
+        if (!confirm('⚠️ Cette action va REMPLACER toutes vos données actuelles.\n\nContinuer ?')) return;
+        Object.keys(backup.data).forEach(function(k){
+          if (Array.isArray(backup.data[k])) DB.set(k, backup.data[k]);
+        });
+        toast('Données restaurées ✓', 'success');
+        setTimeout(function(){ location.reload(); }, 1000);
+      } catch(err) {
+        toast('Fichier invalide : ' + err.message, 'danger');
+      }
+    };
+    reader.readAsText(file);
+  };
+  input.click();
+}
+
+var chartInstances = {};
+function renderCharts() {
+  var u = me();
+  var pats = DB.get('patients').filter(function(p){return p.owner===u.id;});
+  var meds = DB.get('medications').filter(function(m){return m.owner===u.id;});
+  var rdvs = DB.get('rdv').filter(function(r){return r.prat===u.id;});
+  Object.keys(chartInstances).forEach(function(k){
+    if (chartInstances[k]) chartInstances[k].destroy();
+  });
+  var hommes = pats.filter(function(p){return p.sexe==='M';}).length;
+  var femmes = pats.filter(function(p){return p.sexe==='F';}).length;
+  chartInstances.sexe = new Chart(document.getElementById('chartSexe'), {
+    type: 'doughnut',
+    data: { labels: ['Hommes', 'Femmes'], datasets: [{ data: [hommes, femmes], backgroundColor: ['#0f52ba', '#7c3aed'] }] },
+    options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+  });
+  var tranches = {'0-15':0, '16-30':0, '31-45':0, '46-60':0, '61-75':0, '76+':0};
+  pats.forEach(function(p){
+    if (!p.naissance) return;
+    var age = calcAge(p.naissance);
+    if (age <= 15) tranches['0-15']++;
+    else if (age <= 30) tranches['16-30']++;
+    else if (age <= 45) tranches['31-45']++;
+    else if (age <= 60) tranches['46-60']++;
+    else if (age <= 75) tranches['61-75']++;
+    else tranches['76+']++;
+  });
+  chartInstances.age = new Chart(document.getElementById('chartAge'), {
+    type: 'bar',
+    data: { labels: Object.keys(tranches), datasets: [{ label: 'Patients', data: Object.values(tranches), backgroundColor: '#00a86b' }] },
+    options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+  });
+  var pathos = {};
+  meds.forEach(function(m){ if (m.indication) pathos[m.indication] = (pathos[m.indication]||0) + 1; });
+  var pathoArr = Object.keys(pathos).map(function(k){return {name:k, count:pathos[k]};})
+    .sort(function(a,b){return b.count - a.count;}).slice(0, 8);
+  chartInstances.patho = new Chart(document.getElementById('chartPatho'), {
+    type: 'bar',
+    data: { labels: pathoArr.map(function(x){return x.name;}), datasets: [{ label: 'Cas', data: pathoArr.map(function(x){return x.count;}), backgroundColor: '#dc2626' }] },
+    options: { indexAxis: 'y', responsive: true, plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true } } }
+  });
+  var medCount = {};
+  meds.forEach(function(m){ medCount[m.nom] = (medCount[m.nom]||0) + 1; });
+  var medArr = Object.keys(medCount).map(function(k){return {name:k, count:medCount[k]};})
+    .sort(function(a,b){return b.count - a.count;}).slice(0, 8);
+  chartInstances.med = new Chart(document.getElementById('chartMed'), {
+    type: 'bar',
+    data: { labels: medArr.map(function(x){return x.name;}), datasets: [{ label: 'Prescriptions', data: medArr.map(function(x){return x.count;}), backgroundColor: '#7c3aed' }] },
+    options: { indexAxis: 'y', responsive: true, plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true } } }
+  });
+  var mois = {};
+  var now = new Date();
+  for (var i = 11; i >= 0; i--) {
+    var d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    var key = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2, '0');
+    mois[key] = 0;
+  }
+  rdvs.forEach(function(r){
+    var key = r.date.substring(0, 7);
+    if (mois[key] !== undefined) mois[key]++;
+  });
+  chartInstances.mois = new Chart(document.getElementById('chartMois'), {
+    type: 'line',
+    data: { labels: Object.keys(mois), datasets: [{ label: 'Consultations', data: Object.values(mois), borderColor: '#0f52ba', backgroundColor: 'rgba(15,82,186,0.15)', tension: 0.3, fill: true }] },
+    options: { responsive: true, plugins: { legend: { position: 'bottom' } }, scales: { y: { beginAtZero: true } } }
+  });
+}
+
+function generateReport() {
+  try {
+    var u = me();
+    var pats = DB.get('patients').filter(function(p){return p.owner===u.id;});
+    var meds = DB.get('medications').filter(function(m){return m.owner===u.id;});
+    var soins = DB.get('soins').filter(function(s){return s.owner===u.id;});
+    var invs = DB.get('invoices').filter(function(i){return i.user===u.id;});
+    if (pats.length === 0) { toast('Aucune donnée', 'warning'); return; }
+    var titre = document.getElementById('rptTitre').value;
+    var auteur = document.getElementById('rptAuteur').value;
+    var periode = document.getElementById('rptPeriode').value;
+    var anon = document.getElementById('rptAnon').value === 'yes';
+    var jsPDF = window.jspdf.jsPDF;
+    var doc = new jsPDF();
+    doc.setFillColor(15, 82, 186);
+    doc.rect(0, 0, 210, 60, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(28); doc.setFont('helvetica', 'bold');
+    doc.text('NEXUS CARE', 20, 28);
+    doc.setFontSize(13); doc.setFont('helvetica', 'normal');
+    doc.text('Rapport d\'etude statistique', 20, 40);
+    doc.text('Plateforme professionnelle de sante - Algerie', 20, 48);
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(20); doc.setFont('helvetica', 'bold');
+    doc.text(titre, 20, 90);
+    doc.setFontSize(12); doc.setFont('helvetica', 'normal');
+    doc.text('Auteur : ' + auteur, 20, 105);
+    doc.text('Periode : ' + periode, 20, 113);
+    doc.text('Date de generation : ' + new Date().toLocaleDateString('fr-FR'), 20, 121);
+    doc.text('Anonymisation : ' + (anon ? 'OUI' : 'NON'), 20, 129);
+    doc.line(20, 145, 190, 145);
+    doc.setFontSize(10); doc.setFont('helvetica', 'italic');
+    doc.setTextColor(120, 120, 120);
+    doc.text('Ce rapport a ete genere automatiquement par Nexus Care.', 20, 155);
+    doc.text('Les donnees presentees sont issues du suivi des patients enregistres.', 20, 162);
+    doc.addPage();
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(16); doc.setFont('helvetica', 'bold');
+    doc.text('1. Synthese globale', 20, 25);
+    doc.line(20, 28, 190, 28);
+    var ages = pats.map(function(p){return p.naissance ? calcAge(p.naissance) : null;}).filter(function(x){return x!==null;});
+    var ageMoyen = ages.length ? (ages.reduce(function(a,b){return a+b;},0)/ages.length).toFixed(1) : 'N/A';
+    var hommes = pats.filter(function(p){return p.sexe==='M';}).length;
+    var femmes = pats.filter(function(p){return p.sexe==='F';}).length;
+    var imcs = pats.map(function(p){return (p.poids&&p.taille)?p.poids/Math.pow(p.taille/100,2):null;}).filter(function(x){return x!==null;});
+    var imcMoyen = imcs.length ? (imcs.reduce(function(a,b){return a+b;},0)/imcs.length).toFixed(1) : 'N/A';
+    var y = 45;
+    var synth = [
+      ['Nombre total de patients', pats.length],
+      ['Age moyen', ageMoyen + ' ans'],
+      ['Hommes', hommes + ' (' + (hommes/pats.length*100).toFixed(0) + '%)'],
+      ['Femmes', femmes + ' (' + (femmes/pats.length*100).toFixed(0) + '%)'],
+      ['IMC moyen', imcMoyen],
+      ['Medicaments prescrits', meds.length],
+      ['Soins administres', soins.length],
+      ['Factures emises', invs.length]
+    ];
+    doc.setFontSize(11);
+    synth.forEach(function(row){
+      doc.setFont('helvetica', 'bold');
+      doc.text(row[0] + ' :', 25, y);
+      doc.setFont('helvetica', 'normal');
+      doc.text(String(row[1]), 120, y);
+      y += 8;
+    });
+    if (document.getElementById('sec1').checked) {
+      doc.addPage();
+      doc.setFontSize(16); doc.setFont('helvetica', 'bold');
+      doc.text('2. Demographie', 20, 25);
+      doc.line(20, 28, 190, 28);
+      doc.setFontSize(12); doc.setFont('helvetica', 'bold');
+      doc.text('2.1. Repartition par tranche d\'age', 20, 42);
+      var tranches = {'0-15':0, '16-30':0, '31-45':0, '46-60':0, '61-75':0, '76+':0};
+      pats.forEach(function(p){
+        if (!p.naissance) return;
+        var age = calcAge(p.naissance);
+        if (age <= 15) tranches['0-15']++;
+        else if (age <= 30) tranches['16-30']++;
+        else if (age <= 45) tranches['31-45']++;
+        else if (age <= 60) tranches['46-60']++;
+        else if (age <= 75) tranches['61-75']++;
+        else tranches['76+']++;
+      });
+      y = 55;
+      doc.setFontSize(11); doc.setFont('helvetica', 'normal');
+      Object.keys(tranches).forEach(function(k){
+        var v = tranches[k];
+        var pct = (v/pats.length*100).toFixed(1);
+        doc.text(k + ' ans', 30, y);
+        doc.text(v + ' patients', 90, y);
+        doc.text(pct + '%', 140, y);
+        y += 7;
+      });
+      y += 10;
+      doc.setFontSize(12); doc.setFont('helvetica', 'bold');
+      doc.text('2.2. Repartition geographique', 20, y);
+      y += 13;
+      var wilCount = {};
+      pats.forEach(function(p){ wilCount[p.wilaya||'N/A'] = (wilCount[p.wilaya||'N/A']||0) + 1; });
+      doc.setFontSize(11); doc.setFont('helvetica', 'normal');
+      Object.keys(wilCount).forEach(function(k){
+        doc.text(k, 30, y);
+        doc.text(wilCount[k] + ' patient(s)', 100, y);
+        y += 7;
+      });
+    }
+    if (document.getElementById('sec2').checked) {
+      doc.addPage();
+      doc.setFontSize(16); doc.setFont('helvetica', 'bold');
+      doc.text('3. Pathologies', 20, 25);
+      doc.line(20, 28, 190, 28);
+      doc.setFontSize(12); doc.setFont('helvetica', 'bold');
+      doc.text('3.1. Pathologies traitees', 20, 42);
+      var pathos = {};
+      meds.forEach(function(m){ if (m.indication) pathos[m.indication] = (pathos[m.indication]||0) + 1; });
+      var pathoArr = Object.keys(pathos).map(function(k){return {name:k, count:pathos[k]};})
+        .sort(function(a,b){return b.count - a.count;});
+      y = 55;
+      doc.setFontSize(11);
+      if (pathoArr.length === 0) {
+        doc.setFont('helvetica', 'italic');
+        doc.text('Aucune pathologie enregistree.', 25, y);
+      } else {
+        doc.setFillColor(230, 239, 255);
+        doc.rect(20, y - 6, 170, 8, 'F');
+        doc.setFont('helvetica', 'bold');
+        doc.text('Pathologie', 25, y);
+        doc.text('Cas', 130, y);
+        doc.text('Pourcentage', 155, y);
+        y += 10;
+        doc.setFont('helvetica', 'normal');
+        var totalInd = pathoArr.reduce(function(s,x){return s+x.count;},0);
+        pathoArr.forEach(function(x){
+          if (y > 270) { doc.addPage(); y = 25; }
+          doc.text(x.name.substring(0, 50), 25, y);
+          doc.text(String(x.count), 130, y);
+          doc.text((x.count/totalInd*100).toFixed(1) + '%', 155, y);
+          y += 7;
+        });
+      }
+    }
+    if (document.getElementById('sec3').checked) {
+      doc.addPage();
+      doc.setFontSize(16); doc.setFont('helvetica', 'bold');
+      doc.text('4. Medicaments', 20, 25);
+      doc.line(20, 28, 190, 28);
+      var medCount = {};
+      meds.forEach(function(m){ medCount[m.nom] = (medCount[m.nom]||0) + 1; });
+      var medArr = Object.keys(medCount).map(function(k){return {name:k, count:medCount[k]};})
+        .sort(function(a,b){return b.count - a.count;});
+      y = 45;
+      doc.setFontSize(12); doc.setFont('helvetica', 'bold');
+      doc.text('4.1. Medicaments les plus prescrits', 20, y);
+      y += 13;
+      doc.setFontSize(11);
+      if (medArr.length === 0) {
+        doc.setFont('helvetica', 'italic');
+        doc.text('Aucun medicament enregistre.', 25, y);
+      } else {
+        doc.setFillColor(230, 239, 255);
+        doc.rect(20, y - 6, 170, 8, 'F');
+        doc.setFont('helvetica', 'bold');
+        doc.text('Medicament', 25, y);
+        doc.text('Prescriptions', 130, y);
+        y += 10;
+        doc.setFont('helvetica', 'normal');
+        medArr.slice(0, 30).forEach(function(x){
+          if (y > 270) { doc.addPage(); y = 25; }
+          doc.text(x.name.substring(0, 55), 25, y);
+          doc.text(String(x.count), 130, y);
+          y += 7;
+        });
+        y += 10;
+        if (y > 240) { doc.addPage(); y = 25; }
+        doc.setFontSize(12); doc.setFont('helvetica', 'bold');
+        doc.text('4.2. Voies d\'administration', 20, y);
+        y += 13;
+        var voies = {};
+        meds.forEach(function(m){ voies[m.voie] = (voies[m.voie]||0) + 1; });
+        doc.setFontSize(11); doc.setFont('helvetica', 'normal');
+        Object.keys(voies).forEach(function(k){
+          if (y > 270) { doc.addPage(); y = 25; }
+          doc.text(k, 30, y);
+          doc.text(voies[k] + ' (' + (voies[k]/meds.length*100).toFixed(0) + '%)', 120, y);
+          y += 7;
+        });
+      }
+    }
+    if (document.getElementById('sec4').checked) {
+      doc.addPage();
+      doc.setFontSize(16); doc.setFont('helvetica', 'bold');
+      doc.text('5. Soins administres', 20, 25);
+      doc.line(20, 28, 190, 28);
+      var types = {};
+      soins.forEach(function(s){ types[s.type] = (types[s.type]||0) + 1; });
+      y = 45;
+      doc.setFontSize(12); doc.setFont('helvetica', 'bold');
+      doc.text('5.1. Types de soins realises', 20, y);
+      y += 13;
+      doc.setFontSize(11); doc.setFont('helvetica', 'normal');
+      if (Object.keys(types).length === 0) {
+        doc.setFont('helvetica', 'italic');
+        doc.text('Aucun soin enregistre.', 25, y);
+      } else {
+        Object.keys(types).forEach(function(k){
+          if (y > 270) { doc.addPage(); y = 25; }
+          doc.text(k, 30, y);
+          doc.text(types[k] + ' (' + (types[k]/soins.length*100).toFixed(0) + '%)', 120, y);
+          y += 7;
+        });
+      }
+    }
+    if (document.getElementById('sec5').checked) {
+      doc.addPage();
+      doc.setFontSize(16); doc.setFont('helvetica', 'bold');
+      doc.text('6. Liste des patients', 20, 25);
+      doc.line(20, 28, 190, 28);
+      y = 42;
+      doc.setFillColor(230, 239, 255);
+      doc.rect(20, y - 6, 170, 8, 'F');
+      doc.setFontSize(10); doc.setFont('helvetica', 'bold');
+      doc.text('Code', 22, y);
+      if (!anon) doc.text('Nom', 45, y);
+      doc.text('Age', 105, y);
+      doc.text('Sexe', 125, y);
+      doc.text('IMC', 145, y);
+      doc.text('Wilaya', 165, y);
+      y += 10;
+      doc.setFont('helvetica', 'normal');
+      pats.forEach(function(p, idx){
+        if (y > 270) { doc.addPage(); y = 25; }
+        var code = 'P' + String(idx+1).padStart(3, '0');
+        var age = p.naissance ? calcAge(p.naissance) : 'N/A';
+        var imc = (p.poids && p.taille) ? (p.poids/Math.pow(p.taille/100,2)).toFixed(1) : 'N/A';
+        doc.text(code, 22, y);
+        if (!anon) doc.text((p.prenom + ' ' + p.nom).substring(0, 25), 45, y);
+        doc.text(String(age), 105, y);
+        doc.text(p.sexe || 'N/A', 125, y);
+        doc.text(String(imc), 145, y);
+        doc.text((p.wilaya || '').substring(0, 15), 165, y);
+        y += 7;
+      });
+    }
+    var pages = doc.internal.pages.length - 1;
+    for (var i = 1; i <= pages; i++) {
+      doc.setPage(i);
+      doc.setFontSize(8); doc.setFont('helvetica', 'italic');
+      doc.setTextColor(150, 150, 150);
+      doc.text('Nexus Care - Page ' + i + '/' + pages, 20, 290);
+    }
+    doc.save('rapport-etude-' + dateNow() + '.pdf');
+    toast('Rapport PDF généré ✓', 'success');
+  } catch (err) {
+    console.error(err);
+    toast('Erreur : ' + err.message, 'danger');
+  }
+}
+
+function showModal(html) {
+  var old = document.getElementById('modal-root');
+  if (old) old.remove();
+  var div = document.createElement('div');
+  div.id = 'modal-root';
+  div.style.cssText = 'position:fixed;inset:0;background:rgba(15,23,42,.7);z-index:1000;overflow-y:auto;padding:2rem';
+  div.innerHTML = '<div style="max-width:900px;margin:auto" onclick="event.stopPropagation()">' + html + '</div>';
+  div.onclick = function(){ closeModal(); };
+  document.body.appendChild(div);
+}
+function closeModal() {
+  var m = document.getElementById('modal-root');
+  if (m) m.remove();
+}
+
+function renderProf() {
+  var u = me();
+  document.getElementById('prP').value = u.prenom;
+  document.getElementById('prN').value = u.nom;
+  document.getElementById('prT').value = u.tel || '';
+  document.getElementById('prW').value = u.wilaya || '';
+  document.getElementById('prS').value = u.specialite || '';
+  document.getElementById('prR').value = u.tarif || 0;
+  document.getElementById('prB').value = u.bio || '';
+}
+function saveProfile() {
+  var u = me();
+  var users = DB.get('users');
+  for (var i=0;i<users.length;i++) if (users[i].id===u.id) {
+    users[i].prenom = document.getElementById('prP').value;
+    users[i].nom = document.getElementById('prN').value;
+    users[i].tel = document.getElementById('prT').value;
+    users[i].wilaya = document.getElementById('prW').value;
+    users[i].specialite = document.getElementById('prS').value;
+    users[i].tarif = parseFloat(document.getElementById('prR').value) || 0;
+    users[i].bio = document.getElementById('prB').value;
+    break;
+  }
+  DB.set('users', users);
+  toast('Profil enregistré ✓', 'success');
+  startApp();
+}
+function resetDemo() {
+  if (!confirm('Restaurer toutes les données de démonstration ?')) return;
+  DB.reset();
+  seed();
+  toast('Démo restaurée', 'success');
+  setTimeout(function(){ location.reload(); }, 800);
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  seed();
+  var u = me();
+  if (u) startApp();
+});
+</script>
+</body>
+</html>
